@@ -101,8 +101,8 @@ local function loadAirports()
             position = getAirportLocation(v.reference_point),
             radioid = v.radio,
             radios = getAirportRadios(v.radio),
-            -- isCivilian = v.civilian, -- this is boolean, however for my use I am converting to "CIV" or "MIL" or "BOTH"
-            isCivilian = getCivilianStatus(v.civilian), -- Comment this out and use above line if you want boolean
+            isCivilian = v.civilian, -- this is boolean, however for my use I am converting to "CIV" or "MIL" or "BOTH"
+            -- isCivilian = getCivilianStatus(v.civilian), -- Comment this out and use above line if you want boolean
             beacons = v.beacons,
         }
 
@@ -118,9 +118,7 @@ end
 
 local function loadRadios()
     -- this loads every radio frequency for every airport even for a specific roadnet
-    -- print_message_to_user(rawAirportData[1].roadnet)
     local radioList = Terrain.getRadio(rawAirportData[1].roadnet)
-    printTableContents(radioList)
     for i, v in pairs(radioList) do
         -- Initialize the radio entry in the Radios table
         Radios[v.radioId] = {
