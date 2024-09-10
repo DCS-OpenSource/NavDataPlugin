@@ -75,6 +75,8 @@ local airports = sortAirportsByDistance(ownPos) -- returns the same list of airp
 * `haversine(lat1, lon1, lat2, lon2)` Haversine formula to calculate the distance between two points on the Earth
 
 ## Wishlist
+* Edit DCS data for specific maps, so your data will overwrite (but only where specified)
+    * this is half done, see /additionalData, but right now that has no effect
 * Beacons, TACAN, VOR etc...
 * Map Support testing and tuning, different maps handle data differently, but I think I got it all
 * More a T-38 thing, but a way to list Beacons at an airport (this is relevant for my personal avionics)

@@ -90,14 +90,6 @@ function getBearing(lat1, lon1, lat2, lon2)
 end
 
 
-function getAirportRadios(radio)
-    -- set the specific radio frequencies for the airport
-    if not radio or not radio[1] then return nil end
-    if Radios[radio[1]] then return Radios[radio[1]]
-    else return nil end
-end
-
-
 function getCivilianStatus(civilian)
     -- this function is largely only relevant to the T-38C
     if civilian then
