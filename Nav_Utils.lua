@@ -1,6 +1,7 @@
 -- ========================== Caffeine Simulations Nav System ==========================
 -- Developed by Hayds_93, 2024 for Caffeine Simulations and the T-38C
--- Free to use and modify, keeping this comment here, see the README for more info
+-- Free to use and modify under the GPL3 License, see the README for more info
+-- This module is available for PUBLIC mods only, thank you
 -- =====================================================================================
 
 -- Beacon constants, from Beacons.lua
