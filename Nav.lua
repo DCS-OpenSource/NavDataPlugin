@@ -118,9 +118,7 @@ end
 
 local function loadRadios()
     -- this loads every radio frequency for every airport even for a specific roadnet
-    -- print_message_to_user(rawAirportData[1].roadnet)
     local radioList = Terrain.getRadio(rawAirportData[1].roadnet)
-    printTableContents(radioList)
     for i, v in pairs(radioList) do
         -- Initialize the radio entry in the Radios table
         Radios[v.radioId] = {
