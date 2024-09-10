@@ -1,10 +1,13 @@
+-- ========================== Caffeine Simulations Nav System ==========================
+-- Developed by Hayds_93, 2024 for Caffeine Simulations and the T-38C
+-- Free to use and modify, keeping this comment here, see the README for more info
+-- =====================================================================================
+
 dofile(LockOn_Options.script_path.."Systems/Nav/Nav_Utils.lua")
 
-local Terrain			= require('terrain')
-
-local beaconsFile = get_terrain_related_data("beaconsFile")
-
+local Terrain = require('terrain') -- DCS terrain module
 local rawAirportData = get_terrain_related_data("Airdromes")
+local beaconsFile = get_terrain_related_data("beaconsFile")
 
 if beaconsFile then
     local f = loadfile(beaconsFile)
@@ -16,7 +19,7 @@ end
 local ILS_beacons = {}
 local TCN_beacons = {}
 local VOR_beacons = {}
--- local Airports    = {} -- seems to be unused
+
 local Runways     = {}
 local FilteredAirportData = {} -- Data filtered for relevant info and has extra info added from /additionalData
 local Radios      = {}
@@ -98,7 +101,7 @@ local function loadAirports()
             radioid = v.radio,
             radios = getAirportRadios(v.radio),
             -- isCivilian = v.civilian, -- this is boolean, however for my use I am converting to "CIV" or "MIL" or "BOTH"
-            isCivilian = getCivilianStatus(v.civilian),
+            isCivilian = getCivilianStatus(v.civilian), -- Comment this out and use above line if you want boolean
             beacons = v.beacons,
         }
 
