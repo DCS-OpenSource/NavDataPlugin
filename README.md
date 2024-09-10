@@ -48,7 +48,7 @@ Below is an example of one entry in the resulting table.
 
 ## User Guide
 
-1. Drag and drop the Nav folder into `Cockpit/Scripts/Systems/`
+1. Create a `Nav/` folder in `Cockpit/Scripts/Systems/`, then add the contents of this repo to it, path should look like: `Cockpit/Scripts/Systems/Nav/Nav.lua`
 2. Add `dofile(LockOn_Options.script_path.."Systems/Nav/Nav.lua")` at the top of any file you want to access airport data
 3. Get the data `local airportData = getAirports()`
 4. Use the data for whatever you need, right now I have a moving map and Divert page working, both using the data from this
