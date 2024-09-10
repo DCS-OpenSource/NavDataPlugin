@@ -1,2 +1,4 @@
 # Caffeine Simulations Nav Info System
- Code to dynamically fetch data from DCS for airports, and filter for easy use
+A small drop in "API" to dynamically pull data from DCS for airport information
+
+## Data included
