@@ -10,6 +10,9 @@ local Terrain = require('terrain') -- DCS terrain module
 local rawAirportData = get_terrain_related_data("Airdromes")
 local beaconsFile = get_terrain_related_data("beaconsFile")
 
+do_mission_file("mission") -- Load the mission file
+local theatre = mission.theatre -- map name string
+
 if beaconsFile then
     local f = loadfile(beaconsFile)
     if f then
@@ -25,51 +28,6 @@ local Runways     = {}
 local FilteredAirportData = {} -- Data filtered for relevant info and has extra info added from /additionalData
 local Radios      = {}
 
--- ILS_idx = 0
--- TCN_idx = 0
--- VOR_idx = 0
-
--- local function Load_Beacons()
---     for i, v in pairs(beacons) do -- this is erroring
---         if v.type == BEACON_TYPE_VOR then
---             VOR_beacons[#VOR_beacons+1] = {
---                 type         = v.type,
---                 beaconId     = v.beaconId,
---                 posGeo       = v.positionGeo,
---                 display_name = v.display_name,
---                 channel      = v.channel,
---                 pos          = v.position,
---                 direction    = v.direction,
---                 callsign     = v.callsign,
---                 freq         = v.freq
---             }
---         elseif v.type == BEACON_TYPE_TACAN then
---             TCN_beacons[#TCN_beacons+1] = {
---                 type         = v.type,
---                 beaconId     = v.beaconId,
---                 posGeo       = v.positionGeo,
---                 display_name = v.display_name,
---                 channel      = v.channel,
---                 pos          = v.position,
---                 direction    = v.direction,
---                 callsign     = v.callsign,
---                 freq         = v.freq
---             }
---         elseif v.type == BEACON_TYPE_ILS_LOCALIZER then
---             ILS_beacons[#ILS_beacons+1] = {
---                 type         = v.type,
---                 beaconId     = v.beaconId,
---                 posGeo       = v.positionGeo,
---                 display_name = v.display_name,
---                 channel      = v.channel,
---                 pos          = v.position,
---                 direction    = v.direction,
---                 callsign     = v.callsign,
---                 freq         = v.freq
---             }
---         end
---     end
--- end
 
 local function GetRunwayData(airport)
     -- unlike radios, this loads only the runway data for the specific roadnet
@@ -106,8 +64,48 @@ local function loadAirports()
             beacons = v.beacons,
         }
     end
-    print_message_to_user(get_terrain_related_data("name")) -- TODO replace with data supplementation logic
+    -- print_message_to_user(get_terrain_related_data("name")) -- TODO replace with data supplementation logic
 end
+
+local function deepMerge(target, source) 
+    -- this is a recursive function to merge tables only for values that are updated
+    for key, value in pairs(source) do
+        if type(value) == "table" and type(target[key]) == "table" then
+            deepMerge(target[key], value)
+        else
+            target[key] = value
+        end
+    end
+end
+
+
+local function loadAdditionalData()
+    local additionalDataPath = LockOn_Options.script_path .. "Systems/Nav/additionalData/" .. theatre .. ".lua"
+    local additionalData = {}
+    local f = loadfile(additionalDataPath)
+    if f then
+        local dataModule = f()
+        additionalData = dataModule.getAirportData()
+    else
+        print_message_to_user("Warning: No additional data file found for theatre: " .. theatre)
+    end
+    -- printTableContents(additionalData)
+    return additionalData
+end
+
+local function supplementAirportData()
+    local additionalData = loadAdditionalData()
+    for airportName, data in pairs(additionalData) do
+        if FilteredAirportData[airportName] then
+            deepMerge(FilteredAirportData[airportName], data)
+        else
+            print_message_to_user("Warning: Airport " .. airportName .. " not found in FilteredAirportData table")
+        end
+    end
+end
+
+
+
 
 function getAirportRadios(radio)
     -- set the specific radio frequencies for the airport
@@ -119,7 +117,8 @@ end
 local function loadRadios()
     -- this loads every radio frequency for every airport even for a specific roadnet
     local _, firstAirport = next(rawAirportData)
-    local radioList = Terrain.getRadio(firstAirport.roadnet)
+    local radioList = Terrain.getRadio(firstAirport.roadnet )
+    -- printTableContents(radioList)
     for i, v in pairs(radioList) do
         -- Initialize the radio entry in the Radios table
         Radios[v.radioId] = {
@@ -130,9 +129,11 @@ local function loadRadios()
 
         -- Check if the frequency data exists
         if v.frequency then
+            
             for _, freqTable in pairs(v.frequency) do
                 -- Convert the frequency to the desired format
                 if freqTable[2] then
+                    
                     local freq = freqTable[2] / 1000000
                     -- Assign to the correct category based on the frequency value
                     if freq >= 225.0 then
@@ -220,8 +221,13 @@ function debugTerrain()
     print_message_to_user("==============================")
 end
 
--- printTableContents(rawAirportData)
+
 loadRadios()
 loadAirports()
--- debugTerrain()
--- debugFilteredAirports()
+supplementAirportData()
+
+
+
+
+
+

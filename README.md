@@ -47,7 +47,7 @@ Below is an example of one entry in the resulting table.
 ```
 
 ## User Guide
-
+# this is wrong now, fix it (TODO)
 1. Drag and drop the Nav folder into `Cockpit/Scripts/Systems/`
 2. Add `dofile(LockOn_Options.script_path.."Systems/Nav/Nav.lua")` at the top of any file you want to access airport data
 3. Get the data `local airportData = getAirports()`
