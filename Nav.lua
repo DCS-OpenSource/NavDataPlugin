@@ -105,8 +105,8 @@ local function loadAirports()
             isCivilian = getCivilianStatus(v.civilian), -- Comment this out and use above line if you want boolean
             beacons = v.beacons,
         }
-
     end
+    print_message_to_user(get_terrain_related_data("name")) -- TODO replace with data supplementation logic
 end
 
 function getAirportRadios(radio)
@@ -118,7 +118,8 @@ end
 
 local function loadRadios()
     -- this loads every radio frequency for every airport even for a specific roadnet
-    local radioList = Terrain.getRadio(rawAirportData[1].roadnet)
+    local _, firstAirport = next(rawAirportData)
+    local radioList = Terrain.getRadio(firstAirport.roadnet)
     for i, v in pairs(radioList) do
         -- Initialize the radio entry in the Radios table
         Radios[v.radioId] = {
@@ -136,7 +137,7 @@ local function loadRadios()
                     -- Assign to the correct category based on the frequency value
                     if freq >= 225.0 then
                         Radios[v.radioId].uniform = freq
-                    else
+                    elseif freq >= 118.0 and freq < 225.0 then
                         Radios[v.radioId].victor = freq -- TODO test and fix for other maps
                     end
                 end
@@ -211,5 +212,16 @@ function debugFilteredAirports()
     printTableContents(FilteredAirportData)
 end
 
+function debugTerrain()
+    print_message_to_user("==============================")
+    for key, value in pairs(Terrain) do -- this 
+        print_message_to_user(key .. " : ".. tostring(value))
+    end
+    print_message_to_user("==============================")
+end
+
+-- printTableContents(rawAirportData)
 loadRadios()
 loadAirports()
+-- debugTerrain()
+-- debugFilteredAirports()
