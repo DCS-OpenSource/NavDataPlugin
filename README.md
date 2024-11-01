@@ -1,4 +1,5 @@
-# Caffeine Simulations Nav Info System
+# DCSOpenSource Navigation Information Plugin
+By Hayds_93 and the Caffeine Simulations Team
 A small drop in "API" to dynamically pull data from DCS for airport information.
 
 This should work on every map. An exception is Normandy, as since its a map from the 1940s it doesnt have ICAO codes, however every other parameter should work.
