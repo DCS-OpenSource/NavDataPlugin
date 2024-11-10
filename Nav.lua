@@ -4,7 +4,15 @@
 -- This module is available for PUBLIC mods only, thank you
 -- =====================================================================================
 
-dofile(LockOn_Options.script_path.."Systems/Nav/Nav_Utils.lua")
+-- ================================ Config ================================
+    local doICAO = true                 -- set to false to disable ICAO data
+    local doDataSupplementation = true  -- set to false to disable additional data supplementation
+
+-- ============================== End Config ==============================
+
+dofile(LockOn_Options.script_path.."Systems/NavDataPlugin/Nav_Utils.lua")
+
+local aircraftType = get_aircraft_type() -- this enables me to only use some features for the T-38C
 
 local Terrain = require('terrain') -- DCS terrain module
 local rawAirportData = get_terrain_related_data("Airdromes")
@@ -37,7 +45,11 @@ local function GetRunwayData(airport)
     for i, v in pairs(runwayList) do
         runways[i] = {
             runwayLength = calculateRunwayLength(v.edge1x, v.edge1y, v.edge2x, v.edge2y),
-            name = v.edge1name .."-"..v.edge2name
+            name = v.edge1name .."-"..v.edge2name,
+            runwayLocation = {
+                edge1 = {x = v.edge1x, y = v.edge1y},
+                edge2 = {x = v.edge2x, y = v.edge2y}
+            }
         }
     end
 
@@ -59,12 +71,14 @@ local function loadAirports()
             position = getAirportLocation(v.reference_point),
             radioid = v.radio,
             radios = getAirportRadios(v.radio),
-            -- isCivilian = v.civilian, -- this is boolean, however for my use I am converting to "CIV" or "MIL" or "BOTH"
-            isCivilian = getCivilianStatus(v.civilian), -- Comment this out and use above line if you want boolean
+            isCivilian = v.civilian, 
             beacons = v.beacons,
         }
+        if aircraftType == "T-38C" then
+            -- this is boolean, however for my use I am converting to "CIV" or "MIL" or "BOTH"
+            FilteredAirportData[v.display_name].isCivilian = getCivilianStatus(v.civilian)
+        end
     end
-    -- print_message_to_user(get_terrain_related_data("name")) -- TODO replace with data supplementation logic
 end
 
 local function deepMerge(target, source) 
@@ -79,7 +93,7 @@ local function deepMerge(target, source)
 end
 
 local function loadICAOData()
-    local ICAODataPath = LockOn_Options.script_path .. "Systems/Nav/additionalData/"..theatre.."/"..theatre.."_ICAO.lua"
+    local ICAODataPath = LockOn_Options.script_path .. "Systems/NavDataPlugin/additionalData/"..theatre.."/"..theatre.."_ICAO.lua"
     
     local f = loadfile(ICAODataPath)
     if f then
@@ -91,7 +105,7 @@ local function loadICAOData()
 end
 
 local function loadAdditionalData()
-    local additionalDataPath = LockOn_Options.script_path .. "Systems/Nav/additionalData/"..theatre.."/"..theatre..".lua"
+    local additionalDataPath = LockOn_Options.script_path .. "Systems/NavDataPlugin/additionalData/"..theatre.."/"..theatre..".lua"
     local additionalData = {}
     local f = loadfile(additionalDataPath)
     if f then
@@ -237,10 +251,9 @@ end
 
 loadRadios()
 loadAirports()
-supplementAirportData()
-loadICAOData()
--- debugFilteredAirports()
--- printTableContents(ICAO)
+if doDataSupplementation then supplementAirportData() end
+if doICAO then loadICAOData() end
+
 
 
 

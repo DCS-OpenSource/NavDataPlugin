@@ -4,6 +4,9 @@
 -- This module is available for PUBLIC mods only, thank you
 -- =====================================================================================
 
+-- DCS Lua doesnt seem to like the new functions... I think its pre 5.3?
+---@diagnostic disable: deprecated 
+
 -- Beacon constants, from Beacons.lua
 BEACON_TYPE_NULL = 0
 BEACON_TYPE_VOR = 1
