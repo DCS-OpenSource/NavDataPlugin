@@ -24,9 +24,9 @@ local ILS_beacons = {}
 local TCN_beacons = {}
 local VOR_beacons = {}
 
-local Runways     = {}
-local FilteredAirportData = {} -- Data filtered for relevant info and has extra info added from /additionalData
-local Radios      = {}
+local FilteredAirportData   = {} -- Data filtered for relevant info and has extra info added from /additionalData
+local ICAO                  = {} -- Data from the ICAO data file
+local Radios                = {}
 
 
 local function GetRunwayData(airport)
@@ -78,9 +78,20 @@ local function deepMerge(target, source)
     end
 end
 
+local function loadICAOData()
+    local ICAODataPath = LockOn_Options.script_path .. "Systems/Nav/additionalData/"..theatre.."/"..theatre.."_ICAO.lua"
+    
+    local f = loadfile(ICAODataPath)
+    if f then
+        local dataModule = f()
+        ICAO = dataModule.getICAOList()
+    else
+        print_message_to_user("Warning: No ICAO data file found for theatre: " .. theatre)
+    end
+end
 
 local function loadAdditionalData()
-    local additionalDataPath = LockOn_Options.script_path .. "Systems/Nav/additionalData/" .. theatre .. ".lua"
+    local additionalDataPath = LockOn_Options.script_path .. "Systems/Nav/additionalData/"..theatre.."/"..theatre..".lua"
     local additionalData = {}
     local f = loadfile(additionalDataPath)
     if f then
@@ -89,9 +100,9 @@ local function loadAdditionalData()
     else
         print_message_to_user("Warning: No additional data file found for theatre: " .. theatre)
     end
-    -- printTableContents(additionalData)
     return additionalData
 end
+
 
 local function supplementAirportData()
     local additionalData = loadAdditionalData()
@@ -103,8 +114,6 @@ local function supplementAirportData()
         end
     end
 end
-
-
 
 
 function getAirportRadios(radio)
@@ -187,6 +196,10 @@ function getAirports()
     return FilteredAirportData
 end
 
+function getICAOData()
+    return ICAO
+end
+
 function debug_TCN_beacons()
     for i, v in pairs(TCN_beacons) do
         print_message_to_user("TCN: " .. v.display_name .. v.callsign)
@@ -225,6 +238,9 @@ end
 loadRadios()
 loadAirports()
 supplementAirportData()
+loadICAOData()
+-- debugFilteredAirports()
+-- printTableContents(ICAO)
 
 
 

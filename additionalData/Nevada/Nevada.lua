@@ -38,6 +38,10 @@ local Airports = {
     ["Groom Lake"] = { -- Area 51
         name = "Homey Airport",
         isCivilian = "MIL",
+        radios = {
+            uniform = 250.05,
+            victor = 118.00,
+        }
     }
 }
 
