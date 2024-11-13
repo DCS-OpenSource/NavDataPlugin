@@ -46,10 +46,8 @@ local function GetRunwayData(airport)
         runways[i] = {
             runwayLength = calculateRunwayLength(v.edge1x, v.edge1y, v.edge2x, v.edge2y),
             name = v.edge1name .."-"..v.edge2name,
-            runwayLocation = {
-                edge1 = {x = v.edge1x, y = v.edge1y},
-                edge2 = {x = v.edge2x, y = v.edge2y}
-            }
+            runwayEnd1 = getAirportLocation({x=v.edge1x, y=v.edge1y}),
+            runwayEnd2 = getAirportLocation({x=v.edge2x, y=v.edge2y})
         }
     end
 
