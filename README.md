@@ -1,4 +1,5 @@
-# Caffeine Simulations Nav Info System
+# DCSOpenSource Navigation Information Plugin
+By Hayds_93 and the Caffeine Simulations Team
 A small drop in "API" to dynamically pull data from DCS for airport information.
 
 This should work on every map. An exception is Normandy, as since its a map from the 1940s it doesnt have ICAO codes, however every other parameter should work.
@@ -47,11 +48,13 @@ Below is an example of one entry in the resulting table.
 ```
 
 ## User Guide
+
 # this is wrong now, fix it (TODO)
 1. Drag and drop the Nav folder into `Cockpit/Scripts/Systems/`
 2. Add `dofile(LockOn_Options.script_path.."Systems/Nav/Nav.lua")` at the top of any file you want to access airport data
 3. Get the data `local airportData = getAirports()`
 4. Use the data for whatever you need, right now I have a moving map and Divert page working, both using the data from this
+
 
 ## Additional Features
 ### `Nav.lua`
