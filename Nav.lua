@@ -4,11 +4,22 @@
 -- This module is available for PUBLIC mods only, thank you
 -- =====================================================================================
 
-dofile(LockOn_Options.script_path.."Systems/Nav/Nav_Utils.lua")
+-- ================================ Config ================================
+    local doICAO = true                 -- set to false to disable ICAO data
+    local doDataSupplementation = true  -- set to false to disable additional data supplementation
+
+-- ============================== End Config ==============================
+
+dofile(LockOn_Options.script_path.."Systems/NavDataPlugin/Nav_Utils.lua")
+
+local aircraftType = get_aircraft_type() -- this enables me to only use some features for the T-38C
 
 local Terrain = require('terrain') -- DCS terrain module
 local rawAirportData = get_terrain_related_data("Airdromes")
 local beaconsFile = get_terrain_related_data("beaconsFile")
+
+do_mission_file("mission") -- Load the mission file
+local theatre = mission.theatre -- map name string
 
 if beaconsFile then
     local f = loadfile(beaconsFile)
@@ -21,55 +32,10 @@ local ILS_beacons = {}
 local TCN_beacons = {}
 local VOR_beacons = {}
 
-local Runways     = {}
-local FilteredAirportData = {} -- Data filtered for relevant info and has extra info added from /additionalData
-local Radios      = {}
+local FilteredAirportData   = {} -- Data filtered for relevant info and has extra info added from /additionalData
+local ICAO                  = {} -- Data from the ICAO data file
+local Radios                = {}
 
--- ILS_idx = 0
--- TCN_idx = 0
--- VOR_idx = 0
-
--- local function Load_Beacons()
---     for i, v in pairs(beacons) do -- this is erroring
---         if v.type == BEACON_TYPE_VOR then
---             VOR_beacons[#VOR_beacons+1] = {
---                 type         = v.type,
---                 beaconId     = v.beaconId,
---                 posGeo       = v.positionGeo,
---                 display_name = v.display_name,
---                 channel      = v.channel,
---                 pos          = v.position,
---                 direction    = v.direction,
---                 callsign     = v.callsign,
---                 freq         = v.freq
---             }
---         elseif v.type == BEACON_TYPE_TACAN then
---             TCN_beacons[#TCN_beacons+1] = {
---                 type         = v.type,
---                 beaconId     = v.beaconId,
---                 posGeo       = v.positionGeo,
---                 display_name = v.display_name,
---                 channel      = v.channel,
---                 pos          = v.position,
---                 direction    = v.direction,
---                 callsign     = v.callsign,
---                 freq         = v.freq
---             }
---         elseif v.type == BEACON_TYPE_ILS_LOCALIZER then
---             ILS_beacons[#ILS_beacons+1] = {
---                 type         = v.type,
---                 beaconId     = v.beaconId,
---                 posGeo       = v.positionGeo,
---                 display_name = v.display_name,
---                 channel      = v.channel,
---                 pos          = v.position,
---                 direction    = v.direction,
---                 callsign     = v.callsign,
---                 freq         = v.freq
---             }
---         end
---     end
--- end
 
 local function GetRunwayData(airport)
     -- unlike radios, this loads only the runway data for the specific roadnet
@@ -79,7 +45,9 @@ local function GetRunwayData(airport)
     for i, v in pairs(runwayList) do
         runways[i] = {
             runwayLength = calculateRunwayLength(v.edge1x, v.edge1y, v.edge2x, v.edge2y),
-            name = v.edge1name .."-"..v.edge2name
+            name = v.edge1name .."-"..v.edge2name,
+            runwayEnd1 = getAirportLocation({x=v.edge1x, y=v.edge1y}),
+            runwayEnd2 = getAirportLocation({x=v.edge2x, y=v.edge2y})
         }
     end
 
@@ -101,13 +69,64 @@ local function loadAirports()
             position = getAirportLocation(v.reference_point),
             radioid = v.radio,
             radios = getAirportRadios(v.radio),
-            isCivilian = v.civilian, -- this is boolean, however for my use I am converting to "CIV" or "MIL" or "BOTH"
-            -- isCivilian = getCivilianStatus(v.civilian), -- Comment this out and use above line if you want boolean
+            isCivilian = v.civilian, 
             beacons = v.beacons,
         }
-
+        if aircraftType == "T-38C" then
+            -- this is boolean, however for my use I am converting to "CIV" or "MIL" or "BOTH"
+            FilteredAirportData[v.display_name].isCivilian = getCivilianStatus(v.civilian)
+        end
     end
 end
+
+local function deepMerge(target, source) 
+    -- this is a recursive function to merge tables only for values that are updated
+    for key, value in pairs(source) do
+        if type(value) == "table" and type(target[key]) == "table" then
+            deepMerge(target[key], value)
+        else
+            target[key] = value
+        end
+    end
+end
+
+local function loadICAOData()
+    local ICAODataPath = LockOn_Options.script_path .. "Systems/NavDataPlugin/additionalData/"..theatre.."/"..theatre.."_ICAO.lua"
+    
+    local f = loadfile(ICAODataPath)
+    if f then
+        local dataModule = f()
+        ICAO = dataModule.getICAOList()
+    else
+        print_message_to_user("Warning: No ICAO data file found for theatre: " .. theatre)
+    end
+end
+
+local function loadAdditionalData()
+    local additionalDataPath = LockOn_Options.script_path .. "Systems/NavDataPlugin/additionalData/"..theatre.."/"..theatre..".lua"
+    local additionalData = {}
+    local f = loadfile(additionalDataPath)
+    if f then
+        local dataModule = f()
+        additionalData = dataModule.getAirportData()
+    else
+        print_message_to_user("Warning: No additional data file found for theatre: " .. theatre)
+    end
+    return additionalData
+end
+
+
+local function supplementAirportData()
+    local additionalData = loadAdditionalData()
+    for airportName, data in pairs(additionalData) do
+        if FilteredAirportData[airportName] then
+            deepMerge(FilteredAirportData[airportName], data)
+        else
+            print_message_to_user("Warning: Airport " .. airportName .. " not found in FilteredAirportData table")
+        end
+    end
+end
+
 
 function getAirportRadios(radio)
     -- set the specific radio frequencies for the airport
@@ -118,7 +137,9 @@ end
 
 local function loadRadios()
     -- this loads every radio frequency for every airport even for a specific roadnet
-    local radioList = Terrain.getRadio(rawAirportData[1].roadnet)
+    local _, firstAirport = next(rawAirportData)
+    local radioList = Terrain.getRadio(firstAirport.roadnet )
+    -- printTableContents(radioList)
     for i, v in pairs(radioList) do
         -- Initialize the radio entry in the Radios table
         Radios[v.radioId] = {
@@ -129,14 +150,16 @@ local function loadRadios()
 
         -- Check if the frequency data exists
         if v.frequency then
+            
             for _, freqTable in pairs(v.frequency) do
                 -- Convert the frequency to the desired format
                 if freqTable[2] then
+                    
                     local freq = freqTable[2] / 1000000
                     -- Assign to the correct category based on the frequency value
                     if freq >= 225.0 then
                         Radios[v.radioId].uniform = freq
-                    else
+                    elseif freq >= 118.0 and freq < 225.0 then
                         Radios[v.radioId].victor = freq -- TODO test and fix for other maps
                     end
                 end
@@ -185,6 +208,10 @@ function getAirports()
     return FilteredAirportData
 end
 
+function getICAOData()
+    return ICAO
+end
+
 function debug_TCN_beacons()
     for i, v in pairs(TCN_beacons) do
         print_message_to_user("TCN: " .. v.display_name .. v.callsign)
@@ -211,5 +238,23 @@ function debugFilteredAirports()
     printTableContents(FilteredAirportData)
 end
 
+function debugTerrain()
+    print_message_to_user("==============================")
+    for key, value in pairs(Terrain) do -- this 
+        print_message_to_user(key .. " : ".. tostring(value))
+    end
+    print_message_to_user("==============================")
+end
+
+
 loadRadios()
 loadAirports()
+if doDataSupplementation then supplementAirportData() end
+if doICAO then loadICAOData() end
+
+
+
+
+
+
+
