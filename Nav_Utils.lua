@@ -106,8 +106,10 @@ end
 
 function getAirportLocation(reference_point)
     -- convert metric coords to something useful (DMM i think)
-    local lat, long = reference_point.x, reference_point.y
-    return lo_to_geo_coords(lat, long) -- convert format
+    local location = lo_to_geo_coords(reference_point.x, reference_point.y)
+    location.x = reference_point.x
+    location.y = reference_point.y
+    return location
 end
 
 
