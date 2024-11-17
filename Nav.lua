@@ -188,6 +188,36 @@ function sortAirportsByDistance(ownPos)
 end
 
 
+function sortAirportsByDistanceMetric(ownPos)
+    local sortedAirportList = {}
+
+    for i, v in pairs(FilteredAirportData) do
+        -- Calculate the distance using metric coordinates (in meters)
+        local deltaX = v.position.x - ownPos[1]
+        local deltaY = v.position.y - ownPos[2]
+        local distanceToPlayer = math.sqrt(deltaX^2 + deltaY^2) / 1852 -- Convert meters to nautical miles
+
+        -- Calculate the bearing in degrees using atan2
+        local bearingToPlayer = math.deg(math.atan2(deltaY, deltaX))
+        if bearingToPlayer < 0 then
+            bearingToPlayer = bearingToPlayer + 360
+        end
+
+        -- Assign calculated values to the airport
+        v.distanceToPlayerNM = distanceToPlayer -- Distance in nautical miles
+        v.bearingToPlayer = bearingToPlayer
+
+        table.insert(sortedAirportList, v)
+    end
+
+    -- Sort the list by distance
+    table.sort(sortedAirportList, function(a, b)
+        return a.distanceToPlayerNM < b.distanceToPlayerNM
+    end)
+    return sortedAirportList
+end
+
+
 function Get_ILS_beacons()
     return ILS_beacons
 end
