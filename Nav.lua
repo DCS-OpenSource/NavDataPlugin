@@ -4,17 +4,13 @@
 -- This module is available for PUBLIC mods only, thank you
 -- =====================================================================================
 
--- ================================ Config ================================
-    local doICAO = true                 -- set to false to disable ICAO data
-    local doDataSupplementation = true  -- set to false to disable additional data supplementation
+package.path = package.path..";"..LockOn_Options.script_path.."Systems/NavDataPlugin/?.lua"
 
--- ============================== End Config ==============================
-
-dofile(LockOn_Options.script_path.."Systems/NavDataPlugin/Nav_Utils.lua")
+require('Nav_Utils')
+local Terrain = require('terrain') -- DCS terrain module
 
 local aircraftType = get_aircraft_type() -- this enables me to only use some features for the T-38C
 
-local Terrain = require('terrain') -- DCS terrain module
 local rawAirportData = get_terrain_related_data("Airdromes")
 local beaconsFile = get_terrain_related_data("beaconsFile")
 
@@ -59,6 +55,13 @@ local function GetRunwayData(airport)
     return runways
 end
 
+local function getAirportRadios(radio)
+    -- set the specific radio frequencies for the airport
+    if not radio or not radio[1] then return nil end
+    if Radios[radio[1]] then return Radios[radio[1]]
+    else return nil end
+end
+
 local function loadAirports()
 -- Load all airport data at mission start
     for i, v in pairs(rawAirportData) do
@@ -91,7 +94,7 @@ local function deepMerge(target, source)
 end
 
 local function loadICAOData()
-    local ICAODataPath = LockOn_Options.script_path .. "Systems/NavDataPlugin/additionalData/"..theatre.."/"..theatre.."_ICAO.lua"
+    local ICAODataPath = LockOn_Options.script_path .. "Systems/NavDataPluginExtra/"..theatre.."/"..theatre.."_ICAO.lua"
     
     local f = loadfile(ICAODataPath)
     if f then
@@ -103,12 +106,12 @@ local function loadICAOData()
 end
 
 local function loadAdditionalData()
-    local additionalDataPath = LockOn_Options.script_path .. "Systems/NavDataPlugin/additionalData/"..theatre.."/"..theatre..".lua"
+    local additionalDataPath = LockOn_Options.script_path .. "Systems/NavDataPluginExtra/"..theatre.."/"..theatre..".lua"
     local additionalData = {}
     local f = loadfile(additionalDataPath)
     if f then
-        local dataModule = f()
-        additionalData = dataModule.getAirportData()
+        local AirportData = f()
+        additionalData = AirportData
     else
         print_message_to_user("Warning: No additional data file found for theatre: " .. theatre)
     end
@@ -128,18 +131,10 @@ local function supplementAirportData()
 end
 
 
-function getAirportRadios(radio)
-    -- set the specific radio frequencies for the airport
-    if not radio or not radio[1] then return nil end
-    if Radios[radio[1]] then return Radios[radio[1]]
-    else return nil end
-end
-
 local function loadRadios()
     -- this loads every radio frequency for every airport even for a specific roadnet
     local _, firstAirport = next(rawAirportData)
     local radioList = Terrain.getRadio(firstAirport.roadnet )
-    -- printTableContents(radioList)
     for i, v in pairs(radioList) do
         -- Initialize the radio entry in the Radios table
         Radios[v.radioId] = {
@@ -170,11 +165,12 @@ local function loadRadios()
     end
 end
 
+
+
 function sortAirportsByDistance(ownPos)
     local sortedAirportList = {}
 
     for i, v in pairs(FilteredAirportData) do
-        -- local distanceToPlayerFeet = getDistanceInFeet(ownPos[1], ownPos[2], v.position.lat, v.position.lon)
         local distanceToPlayerNM = haversine(ownPos[1], ownPos[2], v.position.lat, v.position.lon)
         local bearingToPlayer = getBearing(ownPos[1], ownPos[2], v.position.lat, v.position.lon)
 
@@ -212,45 +208,12 @@ function getICAOData()
     return ICAO
 end
 
-function debug_TCN_beacons()
-    for i, v in pairs(TCN_beacons) do
-        print_message_to_user("TCN: " .. v.display_name .. v.callsign)
-    end
-end
-
-function debug_ILS_beacons()
-    for i, v in pairs(ILS_beacons) do
-        print_message_to_user("ILS: " .. v.display_name)
-    end
-end
-
-function debug_VOR_beacons()
-    for i, v in pairs(VOR_beacons) do
-        print_message_to_user("VOR: " .. v.display_name)
-    end
-end
-
-function debug_Radios()
-    printTableContents(Radios)
-end
-
-function debugFilteredAirports()
-    printTableContents(FilteredAirportData)
-end
-
-function debugTerrain()
-    print_message_to_user("==============================")
-    for key, value in pairs(Terrain) do -- this 
-        print_message_to_user(key .. " : ".. tostring(value))
-    end
-    print_message_to_user("==============================")
-end
-
-
 loadRadios()
 loadAirports()
-if doDataSupplementation then supplementAirportData() end
-if doICAO then loadICAOData() end
+
+-- these will only load if NavDataPluginExtra exists
+supplementAirportData()
+loadICAOData()
 
 
 

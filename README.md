@@ -47,17 +47,34 @@ Below is an example of one entry in the resulting table.
 }
 ```
 
-## User Guide
+# User Guide
 
-# this is wrong now, fix it (TODO)
-1. Drag and drop the Nav folder into `Cockpit/Scripts/Systems/`
-2. Add `dofile(LockOn_Options.script_path.."Systems/Nav/Nav.lua")` at the top of any file you want to access airport data
-3. Get the data `local airportData = getAirports()`
-4. Use the data for whatever you need, right now I have a moving map and Divert page working, both using the data from this
+## Install Guide
+
+### .git submodule
+1. Navigate to `Cockpit/Scripts/Systems` in your terminal
+2. Run `git submodule add https://github.com/DCS-OpenSource/NavDataPlugin.git`
+3. commit the submodule file to your repo
+
+### Manual Install
+1. Download the latest release (the .zip, not source code)
+2. unzip, and place the folder in `Cockpit/Scripts/Systems`
+3. verify the relative path to `Nav.lua` is `Cockpit/Scripts/Systems/NavDataPlugin/Nav.lua`
+
+## config
+* edit the config at the top of `Nav.lua`, I would recommend setting both to false, at least initially.
+```
+local doICAO = true                 -- set to false to disable ICAO data
+local doDataSupplementation = true  -- set to false to disable additional data supplementation
+```
 
 
-## Additional Features
-### `Nav.lua`
+## Usage
+1. Add `dofile(LockOn_Options.script_path.."Systems/NavDataPlugin/Nav.lua")` at the top of any file you want to access airport data
+2. Get the data `local airportData = getAirports()` which returns the lua table above.
+
+# Additional Features
+## `Nav.lua`
 * `sortAirportsByDistance(ownPos)` a function which gets parsed your own position and sorts them by distance.
     * I put this function in the `update()` of my lua device to update the list as I move around
     * I also run this once a second, I haven't tested it running at standard lua device update speeds
@@ -65,21 +82,19 @@ Below is an example of one entry in the resulting table.
 local ownPos = {own_latitude:get(), own_longitude:get()}
 local airports = sortAirportsByDistance(ownPos) -- returns the same list of airports, but sorted by distance to the player
 ```
-### `Nav_Utils.lua` 
-(You will need to have `dofile(LockOn_Options.script_path.."Systems/Nav/Nav_Utils.lua")` to use these)
+## `Nav_Utils.lua` 
+(You will need to have `dofile(LockOn_Options.script_path.."Systems/NavDataPlugin/Nav_Utils.lua")` to use these)
 * `printTableContents(table)` A function to recursively print data from any table
     * This is a handy function to quickly see the contents of some unknown data you arent aware of.
     * This was extremely helpful for debugging the output of the `Terrain` module, and hopefully you find it useful too.
     * Try not to run it in `update()` or your PC will melt, DCS doesnt like 1000s of `print_message_to_user()` messages
-
+    * *note: while this works, using JNelsons ImGui is a much better way to do this, found [here](https://github.com/08jne01/dcs-lua-imgui/tree/main)*
 * `getBearing(lat1, lon1, lat2, lon2)` a function to calculate the bearing from the player to an airport (or any point)
     * lat1, lon1 being ownPos
 
 * `haversine(lat1, lon1, lat2, lon2)` Haversine formula to calculate the distance between two points on the Earth
 
 ## Wishlist
-* Edit DCS data for specific maps, so your data will overwrite (but only where specified)
-    * this is half done, see /additionalData, but right now that has no effect
 * Beacons, TACAN, VOR etc...
 * Map Support testing and tuning, different maps handle data differently, but I think I got it all
 * More a T-38 thing, but a way to list Beacons at an airport (this is relevant for my personal avionics)
