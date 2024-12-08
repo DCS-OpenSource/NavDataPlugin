@@ -1,8 +1,11 @@
+# Please note this plugin is available for public mods only, for private use, please reach out to hayds_93 on discord.
+
 # DCSOpenSource Navigation Information Plugin
 By Hayds_93, built for the T-38C
-A small drop in "API" to dynamically pull data from DCS for airport/navigation information.
+A small drop in "API" to dynamically pull data from DCS for airport/navigation information on any map.
 
----
+
+
 This should work on every map. An exception is Normandy, as since its a map from the 1940s it doesnt have ICAO codes, however every other parameter should work.
 It is untested on:
 * Afghanistan
