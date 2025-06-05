@@ -4,7 +4,7 @@
 -- This module is available for PUBLIC mods only, thank you
 -- =====================================================================================
 
-package.path = package.path..";"..LockOn_Options.script_path.."Systems/NavDataPlugin/?.lua"
+package.path = package.path..";"..LockOn_Options.script_path.."NavDataPlugin/?.lua"
 
 require('Nav_Utils')
 local Terrain = require('terrain') -- DCS terrain module
