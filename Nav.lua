@@ -34,8 +34,8 @@ local ICAO                  = {} -- Data from the ICAO data file
 local Radios                = {}
 
 for key, beacon in ipairs(beacons) do
-    if (beacon == BEACON_TYPE_VOR) then
-        VOR_beacons.insert(beacon)
+    if (beacon.type == 1) then
+        table.insert(VOR_beacons, beacon)
     -- we need to handle all the rest of the types but thats all i need for now
     end
 end
