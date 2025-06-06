@@ -4,7 +4,7 @@
 -- This module is available for PUBLIC mods only, thank you
 -- =====================================================================================
 
-package.path = package.path..";"..LockOn_Options.script_path.."Systems/NavDataPlugin/?.lua"
+package.path = package.path..";"..LockOn_Options.script_path.."NavDataPlugin/?.lua"
 
 require('Nav_Utils')
 local Terrain = require('terrain') -- DCS terrain module
@@ -118,7 +118,6 @@ local function loadAdditionalData()
     return additionalData
 end
 
-
 local function supplementAirportData()
     local additionalData = loadAdditionalData()
     for airportName, data in pairs(additionalData) do
@@ -129,7 +128,6 @@ local function supplementAirportData()
         end
     end
 end
-
 
 local function loadRadios()
     -- this loads every radio frequency for every airport even for a specific roadnet
@@ -165,27 +163,25 @@ local function loadRadios()
     end
 end
 
+-- function sortAirportsByDistance(ownPos)
+--     local sortedAirportList = {}
 
+--     for i, v in pairs(FilteredAirportData) do
+--         local distanceToPlayerNM = haversine(ownPos[1], ownPos[2], v.position.lat, v.position.lon)
+--         local bearingToPlayer = getBearing(ownPos[1], ownPos[2], v.position.lat, v.position.lon)
 
-function sortAirportsByDistance(ownPos)
-    local sortedAirportList = {}
+--         -- v.distanceToPlayerFeet = distanceToPlayerFeet
+--         v.distanceToPlayerNM = distanceToPlayerNM
+--         v.bearingToPlayer = bearingToPlayer
 
-    for i, v in pairs(FilteredAirportData) do
-        local distanceToPlayerNM = haversine(ownPos[1], ownPos[2], v.position.lat, v.position.lon)
-        local bearingToPlayer = getBearing(ownPos[1], ownPos[2], v.position.lat, v.position.lon)
+--         table.insert(sortedAirportList, v)
+--     end
 
-        -- v.distanceToPlayerFeet = distanceToPlayerFeet
-        v.distanceToPlayerNM = distanceToPlayerNM
-        v.bearingToPlayer = bearingToPlayer
-
-        table.insert(sortedAirportList, v)
-    end
-
-    table.sort(sortedAirportList, function(a, b)
-        return a.distanceToPlayerNM < b.distanceToPlayerNM
-    end)
-    return sortedAirportList
-end
+--     table.sort(sortedAirportList, function(a, b)
+--         return a.distanceToPlayerNM < b.distanceToPlayerNM
+--     end)
+--     return sortedAirportList
+-- end
 
 
 function sortAirportsByDistanceMetric(ownPos)
