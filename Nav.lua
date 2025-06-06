@@ -12,15 +12,16 @@ local Terrain = require('terrain') -- DCS terrain module
 local aircraftType = get_aircraft_type() -- this enables me to only use some features for the T-38C
 
 local rawAirportData = get_terrain_related_data("Airdromes")
-local beaconsFile = get_terrain_related_data("beaconsFile")
 
 do_mission_file("mission") -- Load the mission file
 local theatre = mission.theatre -- map name string
 
-if beaconsFile then
-    local f = loadfile(beaconsFile)
+-- this mini function loads all the beacon data... maybe
+local fileName =  get_terrain_related_data("beacons") or get_terrain_related_data("beaconsFile")
+if fileName then 
+    local f = loadfile(fileName)
     if f then
-        f()
+        f() -- makes array "beacons" available
     end
 end
 
@@ -31,6 +32,13 @@ local VOR_beacons = {}
 local FilteredAirportData   = {} -- Data filtered for relevant info and has extra info added from /additionalData
 local ICAO                  = {} -- Data from the ICAO data file
 local Radios                = {}
+
+for key, beacon in ipairs(beacons) do
+    if (beacon == BEACON_TYPE_VOR) then
+        VOR_beacons.insert(beacon)
+    -- we need to handle all the rest of the types but thats all i need for now
+    end
+end
 
 
 local function GetRunwayData(airport)
