@@ -7,9 +7,15 @@ extern "C"
 }
 
 #include <format>
+#include <string>
+
 
 #include "CockpitAPI_Declare.h"
 #include "sqlite3.h"
+
+#include <filesystem>
+namespace fs = std::filesystem;
+
 
 CockpitAPI cockpitAPI = CockpitAPI();
 
@@ -18,6 +24,48 @@ CockpitAPI cockpitAPI = CockpitAPI();
 namespace NavDataPluginNaviGraph
 {
     
+    static std::string navDataFilePath;
+
+    int l_setNavDataFilePath(lua_State* L)
+{
+    const char* path = luaL_checkstring(L, 1);
+    navDataFilePath = path;
+
+    try {
+        fs::path dir{ navDataFilePath };
+        // if they passed a full filename, take its parent directory
+        if (!dir.has_extension())
+        {
+            // treat `path` itself as the directory
+        }
+        else
+        {
+            dir = dir.parent_path();
+        }
+        if (!dir.empty() && !fs::exists(dir)) {
+            fs::create_directories(dir);
+        }
+    }
+    catch (const fs::filesystem_error& e) {
+        // report back to Lua
+        return luaL_error(L,
+            "NavDataPlugin: failed to create folder '%s': %s",
+            e.path1().string().c_str(),
+            e.what());
+    }
+
+    return 0;
+}
+
+
+    int l_getNavDataFilePath(lua_State* L)
+    {
+        lua_pushstring(L, navDataFilePath.c_str());
+        return 1; // return the path as a string
+    }
+
+
+
     // make sure to add any new functions to the bottom (minus the 'l_' part)
     int l_ExampleTable(lua_State* L)
     {
@@ -38,7 +86,8 @@ namespace NavDataPluginNaviGraph
         int luaValue = cockpitAPI.getParamNumber(luaParam);
         void* aStringLuaParam = cockpitAPI.getParamHandle("SOME_STRING_FROM_LUA");
         cockpitAPI.setParamString(aStringLuaParam, "hello");
-        const char* helloBuffer = cockpitAPI.getParamString(aStringLuaParam, 50);
+        char helloBuffer[64];
+        cockpitAPI.getParamString(aStringLuaParam, helloBuffer);
 
         return 0; // don't return anything
     }
@@ -57,6 +106,8 @@ namespace NavDataPluginNaviGraph
         lua_newtable( L );
 
         static const luaL_Reg functions[] = {
+            REGISTER_FUNCTION(setNavDataFilePath),
+            REGISTER_FUNCTION(getNavDataFilePath),
             REGISTER_FUNCTION(Add),
             REGISTER_FUNCTION(ExampleTable),
             REGISTER_FUNCTION(ParamTest),

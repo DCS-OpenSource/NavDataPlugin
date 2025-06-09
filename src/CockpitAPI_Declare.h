@@ -35,12 +35,11 @@ public:
 		return res;
 	}
 
-	const char* getParamString(void* handle, unsigned buffer_size)
+	void getParamString(void* handle, char* buffer)
 	{
-		char buffer[256];
-		ed_param_api.pfn_ed_cockpit_parameter_value_to_string(handle, buffer, 256);
-		return &buffer[0];
+		ed_param_api.pfn_ed_cockpit_parameter_value_to_string(handle, buffer, 64);
 	}
+
 
 	int compareParams(void* handle1, void* handle2)
 	{
