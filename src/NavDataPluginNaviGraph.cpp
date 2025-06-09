@@ -27,6 +27,7 @@ namespace NavDataPluginNaviGraph
     static std::string navDataFilePath;
     static bool navDataAvailable = false;
 
+    // This function sets the path for the nav data file. and creates the directory if it does not exist.
     int l_setNavDataFilePath(lua_State* L)
     {
         const char* path = luaL_checkstring(L, 1);
@@ -58,7 +59,7 @@ namespace NavDataPluginNaviGraph
         return 0;
     }
 
-
+    // This function retrieves the current nav data file path.
     int l_getNavDataFilePath(lua_State* L)
     {
         lua_pushstring(L, navDataFilePath.c_str());
