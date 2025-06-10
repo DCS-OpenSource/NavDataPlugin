@@ -8,6 +8,7 @@ extern "C"
 
 #include <format>
 #include <string>
+#include <algorithm>
 
 
 #include "CockpitAPI_Declare.h"
@@ -22,7 +23,20 @@ CockpitAPI cockpitAPI = CockpitAPI();
 #define REGISTER_FUNCTION(function) { #function, l_ ## function }
 
 namespace NavDataPluginNaviGraph
-{
+{   
+    struct NavItem {
+        std::string db_name;
+        std::string identifier;
+        std::string continent;
+        std::string country;
+        std::string city;
+
+        double      latitude;
+        double      longitude;
+        double      elevation;
+
+    };
+
     struct AirportItem {
         std::string airport_identifier;        // 4
         std::string airport_name;              // 30
@@ -50,13 +64,16 @@ namespace NavDataPluginNaviGraph
         double      transition_level;          // numeric
     };
 
+    static std::vector<NavItem> navItems;
     std::vector<AirportItem> airportItems;
 
     fs::path findBestCycleFile();
 
     std::string navDataFilePath;
+    std::string navDataLoadedFilePath;
     bool navDataAvailable = false;
 
+    #pragma region Helper functions
     // scans navDataFilePath for ng_jeppesen_fwdfd_XXXX.s3db,
     // returns the path to the highest-numbered cycle file (or empty path)
     fs::path findBestCycleFile()
@@ -98,7 +115,7 @@ namespace NavDataPluginNaviGraph
         const unsigned char* t = sqlite3_column_text(stmt, idx);
         return t ? reinterpret_cast<const char*>(t) : std::string();
     }
-
+    #pragma endregion
 
     // This function sets the path for the nav data file. and creates the directory if it does not exist.
     int l_setNavDataFilePath(lua_State* L)
@@ -143,71 +160,28 @@ namespace NavDataPluginNaviGraph
     int l_loadNavDataHeader(lua_State* L)
     {
         navDataAvailable = false;
+        navDataLoadedFilePath.clear();  // reset previous value
 
-        if (navDataFilePath.empty()) {
-            lua_pushnil(L);
-            return 1;
-        }
-
-        fs::path dir{ navDataFilePath };
-        if (!fs::exists(dir) || !fs::is_directory(dir)) {
-            lua_pushnil(L);
-            return 1;
-        }
-
-        // Scan for all files matching ng_jeppesen_fwdfd_XXXX.s3db
-        const std::string prefix = "ng_jeppesen_fwdfd_";
-        const std::string ext    = ".s3db";
-
-        fs::path bestFile;
-        int      bestCycle = -1;
-
-        for (auto &ent : fs::directory_iterator(dir)) {
-            if (!ent.is_regular_file()) continue;
-            auto p        = ent.path();
-            auto name     = p.filename().string();
-
-            // must start with prefix and end with ext
-            if (p.extension() == ext && name.rfind(prefix, 0) == 0) {
-                // extract the cycle substring:
-                //   name = prefix + cycle(4 chars) + ext
-                auto cycleStr = name.substr(
-                    prefix.size(),
-                    name.size() - prefix.size() - ext.size()
-                );
-                // try to parse
-                int cycleNum = -1;
-                try {
-                    cycleNum = std::stoi(cycleStr);
-                } catch (...) {
-                    continue;
-                }
-                if (cycleNum > bestCycle) {
-                    bestCycle = cycleNum;
-                    bestFile  = p;
-                }
-            }
-        }
-
+        fs::path bestFile = findBestCycleFile();
         if (bestFile.empty()) {
-            // nothing found
             lua_pushnil(L);
             return 1;
         }
 
-        // Open and query the header table
-        sqlite3 *db = nullptr;
-        if (sqlite3_open(bestFile.string().c_str(), &db) != SQLITE_OK) {
+        navDataLoadedFilePath = bestFile.string();
+
+        sqlite3* db = nullptr;
+        if (sqlite3_open(navDataLoadedFilePath.c_str(), &db) != SQLITE_OK) {
             sqlite3_close(db);
             lua_pushnil(L);
             return 1;
         }
 
-        const char *sql =
+        const char* sql =
           "SELECT creator, cycle, data_provider, dataset_version,"
           "       dataset, effective_fromto, parsed_at, revision"
           "  FROM tbl_hdr_header LIMIT 1;";
-        sqlite3_stmt *stmt = nullptr;
+        sqlite3_stmt* stmt = nullptr;
         if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
             sqlite3_close(db);
             lua_pushnil(L);
@@ -221,15 +195,13 @@ namespace NavDataPluginNaviGraph
             return 1;
         }
 
-        // If we reach here, NavData is available
         navDataAvailable = true;
 
-        // Build and return Lua table
         lua_newtable(L);
-        auto pushF = [&](const char *k, int i) {
+        auto pushF = [&](const char* k, int col) {
             lua_pushstring(L, k);
             lua_pushstring(L,
-              reinterpret_cast<const char*>(sqlite3_column_text(stmt,i)));
+              reinterpret_cast<const char*>(sqlite3_column_text(stmt, col)));
             lua_settable(L, -3);
         };
         pushF("creator",          0);
@@ -257,20 +229,21 @@ namespace NavDataPluginNaviGraph
     int l_initAirportData(lua_State* L)
     {
         airportItems.clear();
-    
-        fs::path bestFile = findBestCycleFile();
-        if (bestFile.empty()) {
+
+        // Must have successfully loaded a header (and therefore set the file path)
+        if (!navDataAvailable || navDataLoadedFilePath.empty()) {
             lua_pushnil(L);
             return 1;
         }
-    
+
+        // Open the exact file loaded previously
         sqlite3* db = nullptr;
-        if (sqlite3_open(bestFile.string().c_str(), &db) != SQLITE_OK) {
+        if (sqlite3_open(navDataLoadedFilePath.c_str(), &db) != SQLITE_OK) {
             sqlite3_close(db);
             lua_pushnil(L);
             return 1;
         }
-    
+
         const char* sql =
           "SELECT airport_identifier,"
           "       airport_name,"
@@ -303,48 +276,45 @@ namespace NavDataPluginNaviGraph
             lua_pushnil(L);
             return 1;
         }
-    
+
         while (sqlite3_step(stmt) == SQLITE_ROW) {
             AirportItem itm;
             int col = 0;
-            itm.airport_identifier        = safeText(stmt, col++);
-            itm.airport_name              = safeText(stmt, col++);
-            itm.airport_ref_latitude      = sqlite3_column_double(stmt, col++);
-            itm.airport_ref_longitude     = sqlite3_column_double(stmt, col++);
-            itm.airport_type              = safeText(stmt, col++);
-            itm.area_code                 = safeText(stmt, col++);
-            itm.ata_iata_code             = safeText(stmt, col++);
-            itm.city                      = safeText(stmt, col++);
-            itm.continent                 = safeText(stmt, col++);
-            itm.country_3letter           = safeText(stmt, col++);
-            itm.country                   = safeText(stmt, col++);
-            itm.elevation                 = sqlite3_column_double(stmt, col++);
-            itm.fuel                      = safeText(stmt, col++);
-            itm.icao_code                 = safeText(stmt, col++);
-            itm.ifr_capability            = safeText(stmt, col++);
-            itm.longest_runway_surface_code = safeText(stmt, col++);
-            itm.magnetic_variation        = sqlite3_column_double(stmt, col++);
-            itm.speed_limit_altitude      = safeText(stmt, col++);
-            itm.speed_limit               = sqlite3_column_double(stmt, col++);
-            itm.state_2letter             = safeText(stmt, col++);
-            itm.state                     = safeText(stmt, col++);
-            itm.time_zone                 = safeText(stmt, col++);
-            itm.transition_altitude       = sqlite3_column_double(stmt, col++);
-            itm.transition_level          = sqlite3_column_double(stmt, col++);
+            itm.airport_identifier            = safeText(stmt, col++);
+            itm.airport_name                  = safeText(stmt, col++);
+            itm.airport_ref_latitude          = sqlite3_column_double(stmt, col++);
+            itm.airport_ref_longitude         = sqlite3_column_double(stmt, col++);
+            itm.airport_type                  = safeText(stmt, col++);
+            itm.area_code                     = safeText(stmt, col++);
+            itm.ata_iata_code                 = safeText(stmt, col++);
+            itm.city                          = safeText(stmt, col++);
+            itm.continent                     = safeText(stmt, col++);
+            itm.country_3letter               = safeText(stmt, col++);
+            itm.country                       = safeText(stmt, col++);
+            itm.elevation                     = sqlite3_column_double(stmt, col++);
+            itm.fuel                          = safeText(stmt, col++);
+            itm.icao_code                     = safeText(stmt, col++);
+            itm.ifr_capability                = safeText(stmt, col++);
+            itm.longest_runway_surface_code   = safeText(stmt, col++);
+            itm.magnetic_variation            = sqlite3_column_double(stmt, col++);
+            itm.speed_limit_altitude          = safeText(stmt, col++);
+            itm.speed_limit                   = sqlite3_column_double(stmt, col++);
+            itm.state_2letter                 = safeText(stmt, col++);
+            itm.state                         = safeText(stmt, col++);
+            itm.time_zone                     = safeText(stmt, col++);
+            itm.transition_altitude           = sqlite3_column_double(stmt, col++);
+            itm.transition_level              = sqlite3_column_double(stmt, col++);
             airportItems.push_back(std::move(itm));
         }
 
-    
         sqlite3_finalize(stmt);
         sqlite3_close(db);
-    
-        // sort by airport_identifier
+
+        // Sort by airport_identifier
         std::sort(airportItems.begin(), airportItems.end(),
-            [](auto &a, auto &b){
-                return a.airport_identifier < b.airport_identifier;
-            });
-        
-        // push Lua array
+                  [](auto &a, auto &b){ return a.airport_identifier < b.airport_identifier; });
+
+        // Push as Lua array
         lua_newtable(L);
         int idx = 1;
         for (auto &a : airportItems) {
@@ -359,6 +329,7 @@ namespace NavDataPluginNaviGraph
                 lua_pushnumber(L, d);
                 lua_settable(L, -3);
             };
+
             S("airport_identifier",        a.airport_identifier);
             S("airport_name",              a.airport_name);
             N("airport_ref_latitude",      a.airport_ref_latitude);
@@ -383,10 +354,10 @@ namespace NavDataPluginNaviGraph
             S("time_zone",                 a.time_zone);
             N("transition_altitude",       a.transition_altitude);
             N("transition_level",          a.transition_level);
-        
+
             lua_rawseti(L, -2, idx++);
         }
-    
+
         return 1;
     }
 
@@ -439,6 +410,171 @@ namespace NavDataPluginNaviGraph
         return 1;
     }
 
+
+    // This function initializes the Navigation database for GPS points (airports, navaids, waypoints etc.)
+    int l_initNavData(lua_State* L)
+    {
+        navItems.clear();
+
+        // must have loaded a file already
+        if (!navDataAvailable || navDataLoadedFilePath.empty()) {
+            // no-op, leave vector empty
+            return 0;
+        }
+
+        sqlite3* db = nullptr;
+        if (sqlite3_open(navDataLoadedFilePath.c_str(), &db) != SQLITE_OK) {
+            sqlite3_close(db);
+            return 0;
+        }
+
+        // helper to run one query and append into navItems
+        auto runQuery = [&](const char* sql, auto mapper){
+            sqlite3_stmt* stmt = nullptr;
+            if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK)
+                return;
+            while (sqlite3_step(stmt) == SQLITE_ROW) {
+                NavItem itm;
+                mapper(stmt, itm);
+                navItems.push_back(std::move(itm));
+            }
+            sqlite3_finalize(stmt);
+        };
+
+        // 1) VHF/DME navaids
+        runQuery(
+          "SELECT navaid_identifier, continent, country, dme_latitude, dme_longitude, dme_elevation "
+          "  FROM tbl_d_vhfnavaids;",
+          [&](sqlite3_stmt* s, NavItem& itm){
+            itm.db_name    = "tbl_d_vhfnavaids";
+            itm.identifier = safeText(s, 0);
+            itm.continent  = safeText(s, 1);
+            itm.country    = safeText(s, 2);
+            itm.city       = "";
+            itm.latitude   = sqlite3_column_double(s, 3);
+            itm.longitude  = sqlite3_column_double(s, 4);
+            itm.elevation  = sqlite3_column_double(s, 5);
+          }
+        );
+
+        // 2) enroute NDB/VOR
+        runQuery(
+          "SELECT navaid_identifier, continent, country, navaid_latitude, navaid_longitude "
+          "  FROM tbl_db_enroute_ndbnavaids;",
+          [&](sqlite3_stmt* s, NavItem& itm){
+            itm.db_name    = "tbl_db_enroute_ndbnavaids";
+            itm.identifier = safeText(s, 0);
+            itm.continent  = safeText(s, 1);
+            itm.country    = safeText(s, 2);
+            itm.city       = "";
+            itm.latitude   = sqlite3_column_double(s, 3);
+            itm.longitude  = sqlite3_column_double(s, 4);
+            itm.elevation  = 0.0;
+          }
+        );
+
+        // 3) enroute waypoints
+        runQuery(
+          "SELECT waypoint_identifier, continent, country, waypoint_latitude, waypoint_longitude "
+          "  FROM tbl_ea_enroute_waypoints;",
+          [&](sqlite3_stmt* s, NavItem& itm){
+            itm.db_name    = "tbl_ea_enroute_waypoints";
+            itm.identifier = safeText(s, 0);
+            itm.continent  = safeText(s, 1);
+            itm.country    = safeText(s, 2);
+            itm.city       = "";
+            itm.latitude   = sqlite3_column_double(s, 3);
+            itm.longitude  = sqlite3_column_double(s, 4);
+            itm.elevation  = 0.0;
+          }
+        );
+
+        // 4) terminal waypoints
+        runQuery(
+          "SELECT waypoint_identifier, continent, country, waypoint_latitude, waypoint_longitude "
+          "  FROM tbl_pc_terminal_waypoints;",
+          [&](sqlite3_stmt* s, NavItem& itm){
+            itm.db_name    = "tbl_pc_terminal_waypoints";
+            itm.identifier = safeText(s, 0);
+            itm.continent  = safeText(s, 1);
+            itm.country    = safeText(s, 2);
+            itm.city       = "";
+            itm.latitude   = sqlite3_column_double(s, 3);
+            itm.longitude  = sqlite3_column_double(s, 4);
+            itm.elevation  = 0.0;
+          }
+        );
+
+        // 5) airports
+        runQuery(
+          "SELECT airport_identifier, continent, country, city, airport_ref_latitude, airport_ref_longitude, elevation "
+          "  FROM tbl_pa_airports;",
+          [&](sqlite3_stmt* s, NavItem& itm){
+            itm.db_name    = "tbl_pa_airports";
+            itm.identifier = safeText(s, 0);
+            itm.continent  = safeText(s, 1);
+            itm.country    = safeText(s, 2);
+            itm.city       = safeText(s, 3);
+            itm.latitude   = sqlite3_column_double(s, 4);
+            itm.longitude  = sqlite3_column_double(s, 5);
+            itm.elevation  = sqlite3_column_double(s, 6);
+          }
+        );
+
+        sqlite3_close(db);
+
+        // sort by identifier
+        std::sort(navItems.begin(), navItems.end(),
+                  [](auto &a, auto &b){ return a.identifier < b.identifier; });
+
+        return 0;  // no values returned to Lua
+    }
+
+    // This function gets a navigation item by its identifier and returns it as a Lua table.
+    int l_getNavItem(lua_State* L)
+    {
+        const char* c_ident = luaL_checkstring(L, 1);
+        std::string ident(c_ident);
+
+        // perform binary search on sorted navItems
+        auto it = std::lower_bound(
+            navItems.begin(), navItems.end(), ident,
+            [](auto const &item, std::string const &id){
+                return item.identifier < id;
+            }
+        );
+
+        if (it == navItems.end() || it->identifier != ident) {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        // found—push one Lua table
+        lua_newtable(L);
+        auto &itm = *it;
+        auto S = [&](const char* k, const std::string &v){
+            lua_pushstring(L, k);
+            lua_pushstring(L, v.c_str());
+            lua_settable(L, -3);
+        };
+        auto N = [&](const char* k, double d){
+            lua_pushstring(L, k);
+            lua_pushnumber(L, d);
+            lua_settable(L, -3);
+        };
+
+        S("db_name",    itm.db_name);
+        S("identifier", itm.identifier);
+        S("continent",  itm.continent);
+        S("country",    itm.country);
+        S("city",       itm.city);
+        N("latitude",   itm.latitude);
+        N("longitude",  itm.longitude);
+        N("elevation",  itm.elevation);
+
+        return 1;
+    }
+
     // make sure to add any new functions to the bottom (minus the 'l_' part)
     int l_ExampleTable(lua_State* L)
     {
@@ -485,6 +621,8 @@ namespace NavDataPluginNaviGraph
             REGISTER_FUNCTION(isNavDataAvailable),
             REGISTER_FUNCTION(initAirportData),
             REGISTER_FUNCTION(getAirport),
+            REGISTER_FUNCTION(initNavData),
+            REGISTER_FUNCTION(getNavItem),
             REGISTER_FUNCTION(Add),
             REGISTER_FUNCTION(ExampleTable),
             REGISTER_FUNCTION(ParamTest),
