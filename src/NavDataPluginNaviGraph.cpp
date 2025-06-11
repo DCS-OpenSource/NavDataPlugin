@@ -35,6 +35,8 @@ namespace NavDataPluginNaviGraph
         double      longitude;
         double      elevation;
 
+        std::string point_name;
+
     };
 
     struct AirportItem {
@@ -410,25 +412,20 @@ namespace NavDataPluginNaviGraph
         return 1;
     }
 
-
     // This function initializes the Navigation database for GPS points (airports, navaids, waypoints etc.)
     int l_initNavData(lua_State* L)
     {
         navItems.clear();
-
-        // must have loaded a file already
         if (!navDataAvailable || navDataLoadedFilePath.empty()) {
-            // no-op, leave vector empty
             return 0;
         }
-
+    
         sqlite3* db = nullptr;
         if (sqlite3_open(navDataLoadedFilePath.c_str(), &db) != SQLITE_OK) {
             sqlite3_close(db);
             return 0;
         }
-
-        // helper to run one query and append into navItems
+    
         auto runQuery = [&](const char* sql, auto mapper){
             sqlite3_stmt* stmt = nullptr;
             if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK)
@@ -440,10 +437,16 @@ namespace NavDataPluginNaviGraph
             }
             sqlite3_finalize(stmt);
         };
-
-        // 1) VHF/DME navaids
+    
+        // 1) tbl_d_vhfnavaids: include navaid_name (col 6)
         runQuery(
-          "SELECT navaid_identifier, continent, country, dme_latitude, dme_longitude, dme_elevation "
+          "SELECT navaid_identifier,"
+          "       continent,"
+          "       country,"
+          "       dme_latitude,"
+          "       dme_longitude,"
+          "       dme_elevation,"
+          "       navaid_name"
           "  FROM tbl_d_vhfnavaids;",
           [&](sqlite3_stmt* s, NavItem& itm){
             itm.db_name    = "tbl_d_vhfnavaids";
@@ -454,12 +457,18 @@ namespace NavDataPluginNaviGraph
             itm.latitude   = sqlite3_column_double(s, 3);
             itm.longitude  = sqlite3_column_double(s, 4);
             itm.elevation  = sqlite3_column_double(s, 5);
+            itm.point_name = safeText(s, 6);    // ← name
           }
         );
-
-        // 2) enroute NDB/VOR
+    
+        // 2) tbl_db_enroute_ndbnavaids: include navaid_name (col 12)
         runQuery(
-          "SELECT navaid_identifier, continent, country, navaid_latitude, navaid_longitude "
+          "SELECT navaid_identifier,"
+          "       continent,"
+          "       country,"
+          "       navaid_latitude,"
+          "       navaid_longitude,"
+          "       navaid_name"
           "  FROM tbl_db_enroute_ndbnavaids;",
           [&](sqlite3_stmt* s, NavItem& itm){
             itm.db_name    = "tbl_db_enroute_ndbnavaids";
@@ -470,12 +479,18 @@ namespace NavDataPluginNaviGraph
             itm.latitude   = sqlite3_column_double(s, 3);
             itm.longitude  = sqlite3_column_double(s, 4);
             itm.elevation  = 0.0;
+            itm.point_name = safeText(s, 5);    // ← name
           }
         );
-
-        // 3) enroute waypoints
+    
+        // 3) tbl_ea_enroute_waypoints: include waypoint_name (col 6)
         runQuery(
-          "SELECT waypoint_identifier, continent, country, waypoint_latitude, waypoint_longitude "
+          "SELECT waypoint_identifier,"
+          "       continent,"
+          "       country,"
+          "       waypoint_latitude,"
+          "       waypoint_longitude,"
+          "       waypoint_name"
           "  FROM tbl_ea_enroute_waypoints;",
           [&](sqlite3_stmt* s, NavItem& itm){
             itm.db_name    = "tbl_ea_enroute_waypoints";
@@ -486,12 +501,18 @@ namespace NavDataPluginNaviGraph
             itm.latitude   = sqlite3_column_double(s, 3);
             itm.longitude  = sqlite3_column_double(s, 4);
             itm.elevation  = 0.0;
+            itm.point_name = safeText(s, 5);    // ← name
           }
         );
-
-        // 4) terminal waypoints
+    
+        // 4) tbl_pc_terminal_waypoints: include waypoint_name (col 6)
         runQuery(
-          "SELECT waypoint_identifier, continent, country, waypoint_latitude, waypoint_longitude "
+          "SELECT waypoint_identifier,"
+          "       continent,"
+          "       country,"
+          "       waypoint_latitude,"
+          "       waypoint_longitude,"
+          "       waypoint_name"
           "  FROM tbl_pc_terminal_waypoints;",
           [&](sqlite3_stmt* s, NavItem& itm){
             itm.db_name    = "tbl_pc_terminal_waypoints";
@@ -502,41 +523,49 @@ namespace NavDataPluginNaviGraph
             itm.latitude   = sqlite3_column_double(s, 3);
             itm.longitude  = sqlite3_column_double(s, 4);
             itm.elevation  = 0.0;
+            itm.point_name = safeText(s, 5);    // ← name
           }
         );
-
-        // 5) airports
+    
+        // 5) tbl_pa_airports: include airport_name (col 1)
         runQuery(
-          "SELECT airport_identifier, continent, country, city, airport_ref_latitude, airport_ref_longitude, elevation "
+          "SELECT airport_identifier,"
+          "       airport_name,"
+          "       continent,"
+          "       country,"
+          "       city,"
+          "       airport_ref_latitude,"
+          "       airport_ref_longitude,"
+          "       elevation"
           "  FROM tbl_pa_airports;",
           [&](sqlite3_stmt* s, NavItem& itm){
             itm.db_name    = "tbl_pa_airports";
             itm.identifier = safeText(s, 0);
-            itm.continent  = safeText(s, 1);
-            itm.country    = safeText(s, 2);
-            itm.city       = safeText(s, 3);
-            itm.latitude   = sqlite3_column_double(s, 4);
-            itm.longitude  = sqlite3_column_double(s, 5);
-            itm.elevation  = sqlite3_column_double(s, 6);
+            itm.point_name = safeText(s, 1);    // ← name
+            itm.continent  = safeText(s, 2);
+            itm.country    = safeText(s, 3);
+            itm.city       = safeText(s, 4);
+            itm.latitude   = sqlite3_column_double(s, 5);
+            itm.longitude  = sqlite3_column_double(s, 6);
+            itm.elevation  = sqlite3_column_double(s, 7);
           }
         );
-
+    
         sqlite3_close(db);
-
+    
         // sort by identifier
         std::sort(navItems.begin(), navItems.end(),
                   [](auto &a, auto &b){ return a.identifier < b.identifier; });
-
-        return 0;  // no values returned to Lua
+    
+        return 0;
     }
 
-    // This function gets a navigation item by its identifier and returns it as a Lua table.
+    // Getter by identifier: returns one NavItem as a Lua table or nil
     int l_getNavItem(lua_State* L)
     {
         const char* c_ident = luaL_checkstring(L, 1);
         std::string ident(c_ident);
 
-        // perform binary search on sorted navItems
         auto it = std::lower_bound(
             navItems.begin(), navItems.end(), ident,
             [](auto const &item, std::string const &id){
@@ -549,7 +578,7 @@ namespace NavDataPluginNaviGraph
             return 1;
         }
 
-        // found—push one Lua table
+        // build Lua table
         lua_newtable(L);
         auto &itm = *it;
         auto S = [&](const char* k, const std::string &v){
@@ -563,15 +592,62 @@ namespace NavDataPluginNaviGraph
             lua_settable(L, -3);
         };
 
-        S("db_name",    itm.db_name);
-        S("identifier", itm.identifier);
-        S("continent",  itm.continent);
-        S("country",    itm.country);
-        S("city",       itm.city);
-        N("latitude",   itm.latitude);
-        N("longitude",  itm.longitude);
-        N("elevation",  itm.elevation);
+        S("db_name",     itm.db_name);
+        S("identifier",  itm.identifier);
+        S("point_name",  itm.point_name);    // ← new
+        S("continent",   itm.continent);
+        S("country",     itm.country);
+        S("city",        itm.city);
+        N("latitude",    itm.latitude);
+        N("longitude",   itm.longitude);
+        N("elevation",   itm.elevation);
 
+        return 1;
+    }
+
+    // Search (exact or next starting-with): same story
+    int l_searchNavItem(lua_State* L)
+    {
+        const char* c_q = luaL_checkstring(L, 1);
+        std::string query(c_q);
+
+        auto it = std::lower_bound(
+            navItems.begin(), navItems.end(), query,
+            [](auto const &item, std::string const &q){
+                return item.identifier < q;
+            }
+        );
+
+        if (it != navItems.end() &&
+            it->identifier.rfind(query, 0) == 0)
+        {
+            lua_newtable(L);
+            auto &itm = *it;
+            auto S = [&](const char* k, const std::string &v){
+                lua_pushstring(L, k);
+                lua_pushstring(L, v.c_str());
+                lua_settable(L, -3);
+            };
+            auto N = [&](const char* k, double d){
+                lua_pushstring(L, k);
+                lua_pushnumber(L, d);
+                lua_settable(L, -3);
+            };
+
+            S("db_name",     itm.db_name);
+            S("identifier",  itm.identifier);
+            S("point_name",  itm.point_name);    // ← new
+            S("continent",   itm.continent);
+            S("country",     itm.country);
+            S("city",        itm.city);
+            N("latitude",    itm.latitude);
+            N("longitude",   itm.longitude);
+            N("elevation",   itm.elevation);
+
+            return 1;
+        }
+
+        lua_pushnil(L);
         return 1;
     }
 
@@ -623,6 +699,7 @@ namespace NavDataPluginNaviGraph
             REGISTER_FUNCTION(getAirport),
             REGISTER_FUNCTION(initNavData),
             REGISTER_FUNCTION(getNavItem),
+            REGISTER_FUNCTION(searchNavItem),
             REGISTER_FUNCTION(Add),
             REGISTER_FUNCTION(ExampleTable),
             REGISTER_FUNCTION(ParamTest),
