@@ -49,13 +49,15 @@ if fileName then
     end
 end
 
--- Categorize beacons by type
+-- Categorize beacons by type (can be in more than one category (VORTAC))
 for key, beacon in ipairs(beacons) do
     if (beacon.type == BEACON_TYPE_VOR) or (beacon.type == BEACON_TYPE_VORTAC) or (beacon.type == BEACON_TYPE_VOR_DME) then
         table.insert(VOR_beacons, beacon)
-    elseif (beacon.type == BEACON_TYPE_TACAN) or (beacon.type == BEACON_TYPE_VORTAC) then
+    end 
+    if (beacon.type == BEACON_TYPE_TACAN) or (beacon.type == BEACON_TYPE_VORTAC) then
         table.insert(TCN_beacons, beacon)
-    elseif (beacon.type == BEACON_TYPE_ILS_LOCALIZER) or (beacon.type == BEACON_TYPE_ILS_GLIDESLOPE) or (beacon.type == BEACON_TYPE_ILS_FAR_HOMER) or (beacon.type == BEACON_TYPE_ILS_NEAR_HOMER) then
+    end
+    if (beacon.type == BEACON_TYPE_ILS_LOCALIZER) or (beacon.type == BEACON_TYPE_ILS_GLIDESLOPE) or (beacon.type == BEACON_TYPE_ILS_FAR_HOMER) or (beacon.type == BEACON_TYPE_ILS_NEAR_HOMER) then
         table.insert(ILS_beacons, beacon)
     end
 end
@@ -212,21 +214,21 @@ end
 
 ---Function to get the list of ILS beacons
 ---@return table ILS_beacons A table containing all ILS beacons with their relevant data
-function Get_ILS_beacons()
+function get_ILS_beacons()
     return ILS_beacons
 end
 
 
 ---Function to get the list of TCN beacons
 ---@return table TCN_beacons A table containing all TCN beacons with their relevant data
-function Get_TCN_beacons()
+function get_TCN_beacons()
     return TCN_beacons
 end
 
 
 ---Function to get the list of VOR beacons
 ---@return table VOR_beacons A table containing all VOR beacons with their relevant data
-function Get_VOR_beacons()
+function get_VOR_beacons()
     return VOR_beacons
 end
 
