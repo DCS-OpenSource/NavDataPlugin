@@ -1,22 +1,14 @@
-# Please note this plugin is available for public mods only, for private use, please reach out to hayds_93 on discord.
+# DCS: OpenSource Navdata Plugin
 
-# DCSOpenSource Navigation Information Plugin
-By Hayds_93, built for the T-38C
+By Hayds_93 and BrianTheBrain, built for the T-38C and the Garmin GNS-530
 A small drop in "API" to dynamically pull data from DCS for airport/navigation information on any map.
 
-
-
-This should work on every map. An exception is Normandy, as since its a map from the 1940s it doesnt have ICAO codes, however every other parameter should work.
-It is untested on:
-* Afghanistan
-* South Atlantic
+> [!Warning]
+> A few things to be wary of:
+> * Normandy 1944 airfields do not have ICAO codes for airfields, so those fields in the tables will be `nil`.
+> * VHF Radio frequencies only work on Nevada (NTTR) and Caucasus Maps.
 ---
-## Can I use this?
-* Yes you can, but only for public mods, private mods, airshow mods etc are NOT allowed
-* Please Leave the comments at the top of the file untouched
-* Feel free to create pull requests to add features, but try not to make breaking changes to the existing tables
-* I will continue to update this as time goes on
----
+
 ## Data included
 Below is an example of one entry in the resulting table.
 
@@ -86,18 +78,18 @@ Below is an example of one entry in the resulting table.
 ## Install Guide
 
 ### .git submodule
-1. Navigate to `Cockpit/Scripts/Systems` in your terminal
+1. Navigate to `Cockpit/Scripts/` in your terminal
 2. Run `git submodule add https://github.com/DCS-OpenSource/NavDataPlugin.git`
 3. commit the submodule file to your repo
 
 ### Manual Install
 1. Download the latest release (the .zip, not source code)
-2. unzip, and place the folder in `Cockpit/Scripts/Systems`
-3. verify the relative path to `Nav.lua` is `Cockpit/Scripts/Systems/NavDataPlugin/Nav.lua`
+2. unzip, and place the folder in `Cockpit/Scripts/`
+3. verify the relative path to `Nav.lua` is `Cockpit/Scripts/NavDataPlugin/Nav.lua`
 
 
 ## Usage
-1. Add `dofile(LockOn_Options.script_path.."Systems/NavDataPlugin/Nav.lua")` at the top of any file you want to access airport data
+1. Add `dofile(LockOn_Options.script_path.."/NavDataPlugin/Nav.lua")` at the top of any file you want to access airport data
 2. Get the data `local airportData = getAirports()` which returns the lua table above.
 ---
 ## Data Supplementation 
@@ -106,7 +98,7 @@ The Data DCS provides is often less than perfect, especially around radios on ce
 To circumvent this, I added a way to add additional data to edit the dynamically aquired information.
 
 ### How to setup data supplementation
-* Make a new folder in your `Cockpit/Scripts/Systems/` folder called `NavDataPluginExtra`
+* Make a new folder in your `Cockpit/Scripts/` folder called `NavDataPluginExtra`
 * Make sub folders for each map, the name should match the theatre name.
     * You can get the theatre name using:
         ```lua
@@ -153,7 +145,7 @@ I also run this once a second, I haven't tested it running at standard lua devic
 Both Metric (x/y) and Lat/Lon values are stored in the AirportList, so you can use either, depending on your input method.
 
 ## `Nav_Utils.lua` 
-(You will need to have `dofile(LockOn_Options.script_path.."Systems/NavDataPlugin/Nav_Utils.lua")` to use these)
+(You will need to have `dofile(LockOn_Options.script_path.."NavDataPlugin/Nav_Utils.lua")` to use these)
 * `printTableContents(table)` A function to recursively print data from any table
     * This is a handy function to quickly see the contents of some unknown data you arent aware of.
     * This was extremely helpful for debugging the output of the `Terrain` module, and hopefully you find it useful too.
