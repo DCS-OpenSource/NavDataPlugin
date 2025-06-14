@@ -52,13 +52,13 @@ end
 -- Categorize beacons by type (can be in more than one category (VORTAC))
 for key, beacon in ipairs(beacons) do
     if (beacon.type == BEACON_TYPE_VOR) or (beacon.type == BEACON_TYPE_VORTAC) or (beacon.type == BEACON_TYPE_VOR_DME) then
-        table.insert(VOR_beacons, beacon)
+        VOR_beacons[beacon.frequency] = beacon
     end 
     if (beacon.type == BEACON_TYPE_TACAN) or (beacon.type == BEACON_TYPE_VORTAC) then
-        table.insert(TCN_beacons, beacon)
+        TCN_beacons[beacon.frequency] = beacon
     end
     if (beacon.type == BEACON_TYPE_ILS_LOCALIZER) or (beacon.type == BEACON_TYPE_ILS_GLIDESLOPE) or (beacon.type == BEACON_TYPE_ILS_FAR_HOMER) or (beacon.type == BEACON_TYPE_ILS_NEAR_HOMER) then
-        table.insert(ILS_beacons, beacon)
+        ILS_beacons[beacon.frequency] = beacon
     end
 end
 
@@ -214,31 +214,64 @@ end
 
 ---Function to get the list of ILS beacons
 ---@return table ILS_beacons A table containing all ILS beacons with their relevant data
-function get_ILS_beacons()
+function Get_ILS_Beacons()
     return ILS_beacons
 end
 
 
 ---Function to get the list of TCN beacons
 ---@return table TCN_beacons A table containing all TCN beacons with their relevant data
-function get_TCN_beacons()
+function Get_TCN_Beacons()
     return TCN_beacons
 end
 
 
 ---Function to get the list of VOR beacons
 ---@return table VOR_beacons A table containing all VOR beacons with their relevant data
-function get_VOR_beacons()
+function Get_VOR_Beacons()
     return VOR_beacons
 end
 
 
 ---Function to get the list of all available airports
 ---@return table FilteredAirportData A table containing all available airports with their relevant data
-function getAirports()
+function GetAirports()
     return FilteredAirportData
 end
 
+---A function that gets you common data regarding your ownship to a beacon
+---@param ownship table A table of your ownship values. Units are in DCS x,y,z. position [1] [2] [3] = x, y, z. .heading in degrees
+---@param beacon table A table provided by the beacon. should not be nor needed to be modified from the beacon's return.
+---@return number distance Return the distance in DCS units to the beacon
+---@return number radial Return the planes current radial in relation to the beacon
+---@return string toFrom returns either "TO" or "FROM" depending on the planes relative bearing to the beacon
+function GetDistanceRadialAndToFromVOR(ownship, beacon)
+    local dx = ownship.x - beacon.position[1]
+    local dz = ownship.z - beacon.position[3]
+    local raw = math.deg(math.atan2(dx, dz))
+    local distance = math.sqrt(math.pow(dx, 2) + math.pow(dz, 2)) * 0.000539957
+
+    local radial = raw % 360
+
+    local courseToBeacon = (radial + 100) % 360
+
+    local function angleDiff(a, b)
+        local diff = (a - b + 180) % 360 - 180
+        return diff
+    end
+
+    local dTo = math.abs(angleDiff(ownship.heading, courseToBeacon))
+    local dFrom = math.abs(angleDiff(ownship.heading, radial))
+
+    local toFrom
+    if (dTo < dFrom) then
+        toFrom = "TO"
+    else
+        toFrom = "FROM"
+    end
+
+    return distance, radial, toFrom
+end
 -- ============ End of Available functions ============
 
 
