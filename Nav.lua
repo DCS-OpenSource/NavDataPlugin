@@ -53,9 +53,9 @@ end
 for key, beacon in ipairs(beacons) do
     if (beacon.type == BEACON_TYPE_VOR) or (beacon.type == BEACON_TYPE_VORTAC) or (beacon.type == BEACON_TYPE_VOR_DME) then
         VOR_beacons[beacon.frequency] = beacon
-    end 
+    end
     if (beacon.type == BEACON_TYPE_TACAN) or (beacon.type == BEACON_TYPE_VORTAC) then
-        TCN_beacons[beacon.frequency] = beacon
+        TCN_beacons[beacon.channel] = beacon
     end
     if (beacon.type == BEACON_TYPE_ILS_LOCALIZER) or (beacon.type == BEACON_TYPE_ILS_GLIDESLOPE) or (beacon.type == BEACON_TYPE_ILS_FAR_HOMER) or (beacon.type == BEACON_TYPE_ILS_NEAR_HOMER) then
         ILS_beacons[beacon.frequency] = beacon
@@ -249,7 +249,7 @@ function GetDistanceRadialAndToFromVOR(ownship, beacon)
     local dx = ownship.x - beacon.position[1]
     local dz = ownship.z - beacon.position[3]
     local raw = math.deg(math.atan2(dx, dz))
-    local distance = math.sqrt(math.pow(dx, 2) + math.pow(dz, 2)) * 0.000539957
+    local distance = math.sqrt(math.pow(dx, 2) + math.pow(dz, 2))
 
     local radial = raw % 360
 
@@ -272,6 +272,25 @@ function GetDistanceRadialAndToFromVOR(ownship, beacon)
 
     return distance, radial, toFrom
 end
+
+---A function to get you Distance and Radial from a specified beacon
+---@param ownship table A table of ownship values: x, y, z, magHeading, heading. (x, y, z in DCS units/meters, headings in degrees)
+---@param beacon table Beacon value from the beacon table, do not modify the table, simply take it out of the beacons table and parse it
+---@return number|nil range range in meters to beacon from player
+---@return number|nil bearing bearing in degrees from player to beacon
+function GetDistanceRadialToBeacon(ownship, beacon)
+    local range
+    local bearing
+    local magVariation = ownship.magHeading - (360 - ownship.heading)
+    
+    if Terrain.isVisible(ownship.x, ownship.y, ownship.z, beacon.position[1], beacon.position[2] + 15, beacon.position[3]) then -- L.O.S Check
+        range = math.sqrt( (beacon.position[1] - ownship.x)^2 + (beacon.position[2] - ownship.y)^2 + (beacon.position[3] - ownship.z)^2)
+        bearing = (math.deg(math.atan2((beacon.position[3]-ownship.z),(beacon.position[1]- ownship.x)))+ magVariation) %360
+    end
+
+    return range, bearing
+end
+
 -- ============ End of Available functions ============
 
 
