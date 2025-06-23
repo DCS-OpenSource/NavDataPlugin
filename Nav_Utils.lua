@@ -56,6 +56,7 @@ BEACON_TYPE_TACAN_RANGE = 262144
 -- ================ CONSTANTS ================
 M_TO_FT = 3.28084       -- conversion factor from meters to feet
 M_TO_NM = 0.000539957   -- conversion factor from meters to nautical miles
+NM_TO_M = 1852          -- conversion factor from nautical miles to meters
 
 -- ===========================================
 

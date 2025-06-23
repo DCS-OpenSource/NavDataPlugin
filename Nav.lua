@@ -273,7 +273,7 @@ function GetDistanceRadialAndToFromVOR(ownship, beacon)
     return distance, radial, toFrom
 end
 
----A function to get you Distance and Radial from a specified beacon
+---A function to get you Distance and Radial from a specified beacon, this includes the line of sight check, and is corrected for Magnetic Variation
 ---@param ownship table A table of ownship values: x, y, z, magHeading, heading. (x, y, z in DCS units/meters, headings in degrees)
 ---@param beacon table Beacon value from the beacon table, do not modify the table, simply take it out of the beacons table and parse it
 ---@return number|nil range range in meters to beacon from player
@@ -284,10 +284,11 @@ function GetDistanceRadialToBeacon(ownship, beacon)
     local magVariation = ownship.magHeading - (360 - ownship.heading)
     
     if Terrain.isVisible(ownship.x, ownship.y, ownship.z, beacon.position[1], beacon.position[2] + 15, beacon.position[3]) then -- L.O.S Check
-        range = math.sqrt( (beacon.position[1] - ownship.x)^2 + (beacon.position[2] - ownship.y)^2 + (beacon.position[3] - ownship.z)^2)
-        bearing = (math.deg(math.atan2((beacon.position[3]-ownship.z),(beacon.position[1]- ownship.x)))+ magVariation) %360
+        bearing = (math.deg(math.atan2((beacon.position[3]-ownship.z),(beacon.position[1]- ownship.x)))+ magVariation) % 360
+        if beacon.type ~= BEACON_TYPE_VOR then -- VOR has no range information
+            range = math.sqrt( (beacon.position[1] - ownship.x)^2 + (beacon.position[2] - ownship.y)^2 + (beacon.position[3] - ownship.z)^2)
+        end
     end
-
     return range, bearing
 end
 
