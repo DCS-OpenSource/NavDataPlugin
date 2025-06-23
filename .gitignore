@@ -1,4 +1,8 @@
 .vs
 .vscode
-lib/
+
 out/
+Debug/
+lib/
+*.ilk
+*.pdb
