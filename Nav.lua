@@ -193,7 +193,7 @@ end
 
 ---Function to sort airports by distance from a given position
 ---@param ownPos table A table containing the player's position in the format {x, y} in meters
----@return table A sorted list of airports with additional distance and bearing information
+---@return table sortedAirportList A sorted list of airports with additional distance and bearing information
 function sortAirportsByDistance(ownPos)
     local sortedAirportList = {}
 

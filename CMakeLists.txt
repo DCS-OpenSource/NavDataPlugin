@@ -3,6 +3,8 @@
 #
 cmake_minimum_required (VERSION 3.20)
 
+include(FetchContent)
+
 project(NavDataPluginNavigraph DESCRIPTION "Lua plugin for getting DCS World API Data")
 
 file(GLOB_RECURSE source_list "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" )
@@ -33,11 +35,17 @@ set_target_properties( NavDataPluginNavigraph PROPERTIES
 
 target_compile_definitions(NavDataPluginNavigraph PRIVATE LUA_BUILD_AS_DLL )
 #target_link_directories( NavDataPluginNavigraph PRIVATE  )
+
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
+
 target_link_libraries( NavDataPluginNavigraph 
     PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/ext/dcs-lua/lua.lib"
     PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/ext/dcs-lua/lua.lib"
+    PRIVATE nlohmann_json::nlohmann_json
 )
 target_include_directories( NavDataPluginNavigraph
     INTERFACE

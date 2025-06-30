@@ -1,4 +1,5 @@
 #include "NavDataPluginNaviGraph.h"
+#include "NavDataPluginSimbrief.h"
 
 extern "C"
 {
@@ -13,6 +14,7 @@ extern "C"
 
 #include "CockpitAPI_Declare.h"
 #include "sqlite3.h"
+
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -36,7 +38,6 @@ namespace NavDataPluginNaviGraph
         double      elevation;
 
         std::string point_name;
-
     };
 
     struct AirportItem {
@@ -703,6 +704,8 @@ namespace NavDataPluginNaviGraph
             REGISTER_FUNCTION(Add),
             REGISTER_FUNCTION(ExampleTable),
             REGISTER_FUNCTION(ParamTest),
+            REGISTER_FUNCTION(getLatestSimbriefOFP),
+            REGISTER_FUNCTION(setSimbriefUserName),
             { nullptr, nullptr } // Sentinel to mark the end of the array
         };
 
