@@ -7,6 +7,8 @@ include(FetchContent)
 
 project(NavDataPluginNavigraph DESCRIPTION "Lua plugin for getting DCS World API Data")
 
+find_package(CURL CONFIG REQUIRED)
+
 file(GLOB_RECURSE source_list "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" )
 file(GLOB_RECURSE headers_list "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp" )
 
@@ -43,6 +45,7 @@ FetchContent_MakeAvailable(json)
 target_link_libraries( NavDataPluginNavigraph 
     PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/ext/dcs-lua/lua.lib"
+    CURL::libcurl
     PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/ext/dcs-lua/lua.lib"
     PRIVATE nlohmann_json::nlohmann_json

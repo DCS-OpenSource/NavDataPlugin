@@ -11,6 +11,7 @@ extern "C" {
 #pragma comment(lib, "wininet.lib")
 
 #include <nlohmann/json.hpp>
+#include <curl/curl.h>
 
 namespace NavDataPluginNaviGraph
 {
@@ -113,6 +114,14 @@ namespace NavDataPluginNaviGraph
         return result;
     }
 
+    static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
+    {
+        size_t realSize = size * nmemb;
+        std::string* response = static_cast<std::string*>(userp);
+        response->append(static_cast<char*>(contents), realSize);
+        return realSize;
+    }
+
     // Lua binding: ofp_table = getLatestSimbriefOFP()
     int l_getLatestSimbriefOFP(lua_State* L) {
         if (simbrief_username.empty()) {
@@ -123,12 +132,26 @@ namespace NavDataPluginNaviGraph
         std::string apiUrl =
             "https://www.simbrief.com/api/xml.fetcher.php?username=" +
             simbrief_username + "&json=1";
-
-        // perform request via WinInet
-        std::string response = fetchUrlWinInet(apiUrl);
-        if (response.empty()) {
-            return luaL_error(L, "HTTP GET failed or returned empty response");
+            
+        CURL* curl = curl_easy_init();
+        if (!curl)
+        {
+            luaL_error(L, "Curl was not initialized");
         }
+        std::string response;
+        curl_easy_setopt(curl, CURLOPT_URL, apiUrl); // set the url for the request
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+        // perform request
+        CURLcode res = curl_easy_perform(curl);
+        if (res != CURLE_OK)
+        {
+            luaL_error(L, "Request failed: %s\n", curl_easy_strerror(res));
+        }
+        
+        curl_easy_cleanup(curl);
+
 
         // parse JSON
         nlohmann::json j;
