@@ -23,7 +23,8 @@
 package.path = package.path..";"..LockOn_Options.script_path.."NavDataPlugin/?.lua"
 
 local Nav_Utils = require('Nav_Utils')
-local Terrain = require('terrain') -- DCS terrain module
+local Terrain   = require('terrain')    -- DCS Terrain module
+
 
 local ILS_beacons           = {}
 local TCN_beacons           = {}
@@ -126,7 +127,8 @@ local function loadAdditionalData()
         local AirportData = f()
         additionalData = AirportData
     else
-        print_message_to_user("NavDataPlugin: No additional data file found for theatre: " .. theatre)
+        -- print_message_to_user("NavDataPlugin: No additional data file found for theatre: " .. theatre)
+        Nav_Utils.log_warning("No additional data file found for theatre: " .. theatre)
     end
     return additionalData
 end
@@ -140,7 +142,8 @@ local function supplementAirportData()
         if FilteredAirportData[airportName] then
             Nav_Utils.deepMerge(FilteredAirportData[airportName], data)
         else
-            print_message_to_user("NavDataPlugin: Airport " .. airportName .. " not found in FilteredAirportData table")
+            -- print_message_to_user("NavDataPlugin: Airport " .. airportName .. " not found in FilteredAirportData table")
+            Nav_Utils.log_warning("Airport " .. airportName .. " not found in FilteredAirportData table")
         end
     end
 end
@@ -152,12 +155,14 @@ local function loadRadios()
     -- this loads every radio frequency for every airport even for a specific roadnet
     local _, firstAirport = next(rawAirportData)
     if not firstAirport or not firstAirport.roadnet then
-        print_message_to_user("NavDataPlugin: No valid airport data or roadnet found for radios")
+        -- print_message_to_user("NavDataPlugin: No valid airport data or roadnet found for radios")
+        Nav_Utils.log_warning("No valid airport data or roadnet found for radios")
         return
     end
     local radioList = Terrain.getRadio(firstAirport.roadnet)
     if not radioList then
-        print_message_to_user("NavDataPlugin: No radio list found for airport roadnet")
+        -- print_message_to_user("NavDataPlugin: No radio list found for airport roadnet")
+        Nav_Utils.log_warning("NavDataPlugin: No radio list found for airport roadnet")
         return
     end
     for i, v in pairs(radioList) do
@@ -183,7 +188,8 @@ local function loadRadios()
                 end
             end
         else
-            print_message_to_user("NavDataPlugin: No frequency data available for radioId: ".. v.radioId)
+            -- print_message_to_user("NavDataPlugin: No frequency data available for radioId: ".. v.radioId)
+            Nav_Utils.log_warning("No frequency data available for radioId: ".. v.radioId)
         end
     end
 end

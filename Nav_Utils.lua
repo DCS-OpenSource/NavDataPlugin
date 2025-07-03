@@ -24,6 +24,8 @@
 -- and remove the massive ugly list of beacons below
 -- dofile(LockOn_Options.common_script_path.."../../../World/Radio/BeaconTypes.lua")
 
+local log  = require("log") -- DCS Log Module
+
 -- Beacon constants, there are loaded as globals in this file, or any file that loads this file
 BEACON_TYPE_NULL = 0
 BEACON_TYPE_VOR = 1
@@ -135,6 +137,12 @@ local function deepMerge(target, source)
     return target
 end
 
+---Wrapper function for writing to DCS.log using the built in log module. WARNING
+---@param string string Message to appear in the log
+local function log_warning(string)
+    log.write("NAVDATAPLUGIN", log.WARNING, string)
+end
+
 
 return {
     getDistanceBetweenPoints = getDistanceBetweenPoints,
@@ -143,4 +151,6 @@ return {
     getCivilianStatus = getCivilianStatus,
     convertPosToLatLon = convertPosToLatLon,
     deepMerge = deepMerge,
+
+    log_warning = log_warning
 }
