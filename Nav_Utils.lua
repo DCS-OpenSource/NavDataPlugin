@@ -137,7 +137,8 @@ local function deepMerge(target, source)
     return target
 end
 
----Wrapper function for writing to DCS.log using the built in log module. WARNING
+---Wrapper function for writing to DCS.log using the built in log module.
+---Labelled with tag WARNING. 
 ---@param string string Message to appear in the log
 local function log_warning(string)
     log.write("NAVDATAPLUGIN", log.WARNING, string)
