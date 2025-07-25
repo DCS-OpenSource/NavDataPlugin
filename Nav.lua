@@ -29,6 +29,7 @@ local Terrain   = require('terrain')    -- DCS Terrain module
 local ILS_beacons           = {}
 local TCN_beacons           = {}
 local VOR_beacons           = {}
+local ADF_beacons           = {}
 local FilteredAirportData   = {} -- Data filtered for relevant info and has extra info added from /additionalData
 local Radios                = {}
 
@@ -60,6 +61,10 @@ for key, beacon in ipairs(beacons) do
     end
     if (beacon.type == BEACON_TYPE_ILS_LOCALIZER) or (beacon.type == BEACON_TYPE_ILS_GLIDESLOPE) or (beacon.type == BEACON_TYPE_ILS_FAR_HOMER) or (beacon.type == BEACON_TYPE_ILS_NEAR_HOMER) then
         ILS_beacons[beacon.frequency] = beacon
+    end
+    local beaconType = beacon.type
+    if beaconType == BEACON_TYPE_HOMER or beaconType == BEACON_TYPE_AIRPORT_HOMER or beaconType == BEACON_TYPE_AIRPORT_HOMER_WITH_MARKER or beaconType == BEACON_TYPE_ILS_FAR_HOMER or beaconType == BEACON_TYPE_ILS_NEAR_HOMER or beaconType == BEACON_TYPE_NAUTICAL_HOMER then 
+        ADF_beacons[beacon.frequency] = beacon
     end
 end
 
@@ -236,6 +241,13 @@ end
 ---@return table VOR_beacons A table containing all VOR beacons with their relevant data
 function Get_VOR_Beacons()
     return VOR_beacons
+end
+
+
+---Function to get the list of ADF beacons
+---@return table ADF_beacons A table containing all ADF beacons with their relevant data
+function Get_ADF_Beacons()
+    return ADF_beacons
 end
 
 
