@@ -97,7 +97,7 @@ end
 ---@return nil
 local function loadAirports()
     for i, v in pairs(rawAirportData) do
-        FilteredAirportData[v.display_name] = {
+        local airport = {
             name = v.display_name,
             ICAO = v.code,
             runways = GetRunwayData(v.roadnet),
@@ -109,6 +109,10 @@ local function loadAirports()
             isCivilian = v.civilian,
             beacons = v.beacons,
         }
+        FilteredAirportData[v.display_name] = airport
+        FilteredAirportData[i] = airport
+        FilteredAirportData[v.code] = airport
+
         if aircraftType == "T-38C" then
             -- this is boolean, however for my use I am converting to "CIV" or "MIL" or "BOTH"
             FilteredAirportData[v.display_name].isCivilian = Nav_Utils.getCivilianStatus(v.civilian)

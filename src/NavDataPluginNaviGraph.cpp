@@ -10,6 +10,7 @@ extern "C"
 #include <format>
 #include <string>
 #include <algorithm>
+#include <optional>
 
 
 #include "CockpitAPI_Declare.h"
@@ -35,7 +36,7 @@ namespace NavDataPluginNaviGraph
 
         double      latitude;
         double      longitude;
-        double      elevation;
+        std::optional<double> elevation;
 
         std::string point_name;
     };
@@ -457,7 +458,11 @@ namespace NavDataPluginNaviGraph
             itm.city       = "";
             itm.latitude   = sqlite3_column_double(s, 3);
             itm.longitude  = sqlite3_column_double(s, 4);
-            itm.elevation  = sqlite3_column_double(s, 5);
+            if (sqlite3_column_type(s, 5) == SQLITE_NULL) {
+                itm.elevation = std::nullopt;
+            } else {
+                itm.elevation  = sqlite3_column_double(s, 5);
+            }
             itm.point_name = safeText(s, 6);    // ← name
           }
         );
@@ -479,7 +484,7 @@ namespace NavDataPluginNaviGraph
             itm.city       = "";
             itm.latitude   = sqlite3_column_double(s, 3);
             itm.longitude  = sqlite3_column_double(s, 4);
-            itm.elevation  = 0.0;
+            itm.elevation  = std::nullopt;
             itm.point_name = safeText(s, 5);    // ← name
           }
         );
@@ -501,7 +506,7 @@ namespace NavDataPluginNaviGraph
             itm.city       = "";
             itm.latitude   = sqlite3_column_double(s, 3);
             itm.longitude  = sqlite3_column_double(s, 4);
-            itm.elevation  = 0.0;
+            itm.elevation  = std::nullopt;
             itm.point_name = safeText(s, 5);    // ← name
           }
         );
@@ -523,7 +528,7 @@ namespace NavDataPluginNaviGraph
             itm.city       = "";
             itm.latitude   = sqlite3_column_double(s, 3);
             itm.longitude  = sqlite3_column_double(s, 4);
-            itm.elevation  = 0.0;
+            itm.elevation  = std::nullopt;
             itm.point_name = safeText(s, 5);    // ← name
           }
         );
@@ -548,7 +553,11 @@ namespace NavDataPluginNaviGraph
             itm.city       = safeText(s, 4);
             itm.latitude   = sqlite3_column_double(s, 5);
             itm.longitude  = sqlite3_column_double(s, 6);
-            itm.elevation  = sqlite3_column_double(s, 7);
+            if (sqlite3_column_type(s, 7) == SQLITE_NULL) {
+                itm.elevation = std::nullopt;
+            } else {
+                itm.elevation  = sqlite3_column_double(s, 7);
+            }
           }
         );
     
@@ -592,16 +601,25 @@ namespace NavDataPluginNaviGraph
             lua_pushnumber(L, d);
             lua_settable(L, -3);
         };
+        auto ON = [&](const char* k, std::optional<double> &d){
+            lua_pushstring(L, k);
+            if (d.has_value()) {
+                lua_pushnumber(L, d.value());
+            } else {
+                lua_pushnil(L);
+            }
+            lua_settable(L, -3);
+        };
 
         S("db_name",     itm.db_name);
         S("identifier",  itm.identifier);
-        S("point_name",  itm.point_name);    // ← new
+        S("point_name",  itm.point_name);
         S("continent",   itm.continent);
         S("country",     itm.country);
         S("city",        itm.city);
         N("latitude",    itm.latitude);
         N("longitude",   itm.longitude);
-        N("elevation",   itm.elevation);
+        ON("elevation",   itm.elevation);
 
         return 1;
     }
@@ -634,6 +652,15 @@ namespace NavDataPluginNaviGraph
                 lua_pushnumber(L, d);
                 lua_settable(L, -3);
             };
+            auto ON = [&](const char* k, std::optional<double>& d){
+                lua_pushstring(L, k);
+                if (d.has_value()) {
+                    lua_pushnumber(L, d.value());
+                } else {
+                    lua_pushnil(L);
+                }
+                lua_settable(L, -3);
+            };
 
             S("db_name",     itm.db_name);
             S("identifier",  itm.identifier);
@@ -643,7 +670,7 @@ namespace NavDataPluginNaviGraph
             S("city",        itm.city);
             N("latitude",    itm.latitude);
             N("longitude",   itm.longitude);
-            N("elevation",   itm.elevation);
+            ON("elevation",   itm.elevation);
 
             return 1;
         }
