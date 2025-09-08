@@ -215,6 +215,45 @@ function sortAirportsByDistance(ownPos)
     return sortedAirportList
 end
 
+---Returns a list of sorted input beacons by distance lowest first. 
+---@param ownPos table An array of x, y in dcs coordinats (meters)
+---@param beacons table A table array, prefabbly one returned from Get_ILS_Beacons or Get_VOR_Beacons here.
+---@return table sortedBeacons The sorted becaons list. adds a distanceToPlayer field in dcs coords (meters) and bearingFromOwnship field.
+function SortBeaconsByDistanceToPlayer(ownPos, beacons)
+    local sortedBeacons = { }
+
+    for key, beacon in pairs(beacons) do
+        beacon.distanceToPlayer = Nav_Utils.getDistanceBetweenPoints(ownPos[1], ownPos[2], beacon.position.x, beacon.position.y)
+        beacon.bearingFromOwnship = Nav_Utils.getBearing(ownPos[1], ownPos[2], beacon.position.x, beacon.position.y)
+
+        table.insert(sortedBeacons, beacon)
+    end
+
+    table.sort(sortedBeacons, function(a, b)
+        return a.distanceToPlayer < b.distanceToPlayer
+    end)
+    return sortedBeacons
+end
+
+function SortBeaconsByDistanceToPoint(point, beacons)
+    local sortedBeacons = { }
+    local sortedBeaconInformation = { }
+
+    for key, beacon in pairs(beacons) do
+        sortedBeaconInformation[beacon] = { }
+        sortedBeaconInformation[beacon].distanceFromPoint = Nav_Utils.getDistanceBetweenPoints(point.x, point.y, beacon.position[1], beacon.position[3])
+        sortedBeaconInformation[beacon].bearingFromPoint = Nav_Utils.getBearing(point.x, point.y, beacon.position[1], beacon.position[3])
+
+        table.insert(sortedBeacons, beacon)
+    end
+
+    table.sort(sortedBeacons, function(a, b)
+        return sortedBeaconInformation[a].distanceFromPoint < sortedBeaconInformation[b].distanceFromPoint
+    end)
+
+    return sortedBeacons, sortedBeaconInformation
+end
+
 
 ---Function to get the list of ILS beacons
 ---@return table ILS_beacons A table containing all ILS beacons with their relevant data
