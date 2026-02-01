@@ -43,7 +43,9 @@ Aircrafts/Morse/dash
 
 ### Playing a signal
 
+```lua
 morse:playSignal("NZAA", true, 5.0)
+```
 
 MorseString is the text to play.
 isLoop controls whether the signal repeats.
