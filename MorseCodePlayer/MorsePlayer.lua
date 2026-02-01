@@ -28,13 +28,6 @@ require("Morse")
 local MorsePlayer = {}
 MorsePlayer.__index = MorsePlayer
 
--- TODOs
---[[
-* Load EDs SDEF (check A4)
-* Check between word spacing
-* start and stop functions
---]]
-
 
 --- Create the MorsePlayer
 --- @param update_rate number same number parsed to make_default_activity()
@@ -57,6 +50,7 @@ function MorsePlayer:new(update_rate, WPM)
     self.sequence_index = 1
     self.timer = 0
     self.active = false
+    self.current_string = nil
 
     -- loop
     self.loop = false
@@ -80,14 +74,28 @@ end
 --- @param isLoop boolean|nil
 --- @param loopSpacing number|nil Extra spacing (seconds) before repeat
 function MorsePlayer:playSignal(MorseString, isLoop, loopSpacing)
+    if not MorseString or MorseString == "" then
+        return
+    end
+
+    MorseString = MorseString:upper()
+
+    -- If already playing the same signal, do nothing
+    if self.active and self.current_string == MorseString then
+        return
+    end
+
+    -- Store the currently playing string
+    self.current_string = MorseString
+
+    -- Reset state
     self.sequence = {}
     self.sequence_index = 1
-    self.timer = 0
+    self.timer = loopSpacing or 0
+
 
     self.loop = isLoop or false
     self.loop_spacing_time = loopSpacing or (durations.inter_word * self.dit_time * 2)
-
-    MorseString = MorseString:upper()
 
     for char in MorseString:gmatch(".") do
         if char == " " then
@@ -118,12 +126,14 @@ function MorsePlayer:playSignal(MorseString, isLoop, loopSpacing)
 end
 
 
+
 --- Function to stop the signal from playing
 function MorsePlayer:stopSignal()
     self.sequence = {}
     self.sequence_index = 1
     self.timer = 0
     self.active = false
+    self.current_string = nil
 end
 
 
@@ -162,7 +172,7 @@ end
 --- Set Volume of the Dits and Dashes
 --- @param value number 0-1 value.
 function MorsePlayer:adjustVolume(value)
-    value = value / 10 -- Volume really only seems to have an effect 0-0.1 so scale 0-1
+    value = value / 2 -- Volume is wierd, Top end seems high so I've scaled it
     if self.dit then self.dit:update(nil, value, nil) end
     if self.dash then self.dash:update(nil, value, nil) end
 end
