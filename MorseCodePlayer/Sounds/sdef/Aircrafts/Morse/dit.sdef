@@ -1,0 +1,4 @@
+wave = "Effects/Aircrafts/Morse/dit"
+inner_radius = 10
+outer_radius = 100
+gain = 1
