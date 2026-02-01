@@ -28,6 +28,13 @@ require("Morse")
 local MorsePlayer = {}
 MorsePlayer.__index = MorsePlayer
 
+-- TODOs
+--[[
+* Load EDs SDEF (check A4)
+* Check between word spacing
+* start and stop functions
+--]]
+
 
 --- Create the MorsePlayer
 --- @param update_rate number same number parsed to make_default_activity()
@@ -111,6 +118,15 @@ function MorsePlayer:playSignal(MorseString, isLoop, loopSpacing)
 end
 
 
+--- Function to stop the signal from playing
+function MorsePlayer:stopSignal()
+    self.sequence = {}
+    self.sequence_index = 1
+    self.timer = 0
+    self.active = false
+end
+
+
 
 --- MorseCodePlayer Update function
 function MorsePlayer:update()
@@ -140,6 +156,15 @@ function MorsePlayer:update()
     else
         self.timer = self.timer - self.update_rate
     end
+end
+
+
+--- Set Volume of the Dits and Dashes
+--- @param value number 0-1 value.
+function MorsePlayer:adjustVolume(value)
+    value = value / 10 -- Volume really only seems to have an effect 0-0.1 so scale 0-1
+    if self.dit then self.dit:update(nil, value, nil) end
+    if self.dash then self.dash:update(nil, value, nil) end
 end
 
 
